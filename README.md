@@ -1,0 +1,2 @@
+# typespec-test
+typespecのテストプロジェクト
