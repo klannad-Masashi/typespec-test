@@ -1,0 +1,66 @@
+# TypeSpec開発環境用のDocker Compose設定
+version: '3.8'
+
+services:
+  # PostgreSQLデータベース
+  postgres:
+    image: postgres:15-alpine
+    container_name: typespec-postgres
+    environment:
+      POSTGRES_DB: userdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./generated/database:/docker-entrypoint-initdb.d
+    networks:
+      - typespec-network
+
+  # TypeSpec開発環境
+  typespec-dev:
+    build: .
+    container_name: typespec-dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+    working_dir: /app
+    command: /bin/sh -c "while :; do sleep 10; done"
+    networks:
+      - typespec-network
+    depends_on:
+      - postgres
+
+  # Spring Boot API（将来的に追加）
+  # api:
+  #   image: openjdk:11-jre-slim
+  #   container_name: typespec-api
+  #   volumes:
+  #     - ./generated/backend:/app
+  #   working_dir: /app
+  #   ports:
+  #     - "8080:8080"
+  #   networks:
+  #     - typespec-network
+  #   depends_on:
+  #     - postgres
+
+  # Angular フロントエンド（将来的に追加）
+  # frontend:
+  #   image: node:18-alpine
+  #   container_name: typespec-frontend
+  #   volumes:
+  #     - ./generated/frontend:/app
+  #   working_dir: /app
+  #   ports:
+  #     - "4200:4200"
+  #   networks:
+  #     - typespec-network
+
+volumes:
+  postgres_data:
+
+networks:
+  typespec-network:
+    driver: bridge
