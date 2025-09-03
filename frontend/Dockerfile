@@ -1,11 +1,11 @@
 # Angular フロントエンド開発環境
-FROM node:18-alpine
+FROM node:24-slim
 
 # 作業ディレクトリの設定
 WORKDIR /app
 
 # 必要なパッケージのインストール
-RUN apk add --no-cache git curl
+RUN apt-get update && apt-get install -y git curl && rm -rf /var/lib/apt/lists/*
 
 # Angular CLIのグローバルインストール
 RUN npm install -g @angular/cli
