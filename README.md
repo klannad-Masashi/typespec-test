@@ -89,6 +89,10 @@ npm run generate:csv        # CSVのみ
 npm run generate:ddl        # DDLのみ
 npm run generate:backend    # Spring Bootのみ
 npm run generate:frontend   # Angularのみ
+
+# 成果物削除も可能
+npm run clean:all           # すべての生成ファイル削除
+npm run clean:ddl           # DDLファイルのみ削除
 ```
 
 ### 4. 生成されたファイルの確認
@@ -248,3 +252,66 @@ ls -la temp/openapi/openapi.yaml
 
 #### DDLでエンティティ以外のテーブルが生成される
 CSVファイル（`database/csv/table_definitions.csv`）を確認し、不要なテーブル定義が含まれていないかチェックしてください。エンティティフィルタリングにより、ResponseやRequest型は自動的に除外されます。
+
+## 成果物の削除
+
+生成されたファイルのみを削除するためのクリーンアップコマンドです。
+
+### 一括削除
+
+```bash
+# すべての生成ファイルを削除
+npm run clean:all
+```
+
+### 個別削除
+
+```bash
+# 一時ファイル（OpenAPI仕様書）のみ削除
+npm run clean:temp
+
+# CSVファイルのみ削除  
+npm run clean:csv
+
+# DDLファイルのみ削除
+npm run clean:ddl
+
+# Spring Boot生成ファイルのみ削除
+npm run clean:backend
+
+# Angular生成ファイルのみ削除
+npm run clean:frontend
+```
+
+### 手動削除（参考）
+
+npmスクリプトを使わない場合は、以下のコマンドで個別削除できます：
+
+```bash
+# 一時ファイル削除
+rm -rf temp/openapi/*
+
+# CSVファイル削除
+rm -rf database/csv/*
+
+# DDLファイル削除  
+rm -f database/ddl/*.sql
+
+# Spring Boot生成ファイル削除
+rm -rf backend/src/main/java/com/example/userapi/controller/
+rm -rf backend/src/main/java/com/example/userapi/dto/
+rm -rf backend/src/main/java/com/example/userapi/entity/
+rm -rf backend/src/main/java/com/example/userapi/repository/
+rm -rf backend/src/main/java/com/example/userapi/service/
+
+# Angular生成ファイル削除
+rm -rf frontend/src/app/models/
+rm -rf frontend/src/app/services/
+```
+
+### 注意事項
+
+- 削除コマンドは**生成ファイルのみ**を対象とします
+- ソースファイル（TypeSpec定義、設定ファイル、テンプレートなど）は削除されません
+- 削除前に重要なカスタマイズが含まれていないか確認してください
+- Git管理下のファイルは`.gitignore`により除外されているため、通常は削除後に再生成できます

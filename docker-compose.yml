@@ -1,6 +1,4 @@
 # TypeSpec開発環境用のDocker Compose設定
-version: '3.8'
-
 services:
   # PostgreSQLデータベース
   postgres:
