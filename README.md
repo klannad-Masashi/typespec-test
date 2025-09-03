@@ -16,7 +16,7 @@ TypeSpecをインプットとして、DDL、Controller、DTOを自動生成す�
 - **バックエンド**: Spring Boot
 - **データベース**: PostgreSQL
 - **API定義**: TypeSpec
-- **生成ツール**: Python
+- **生成ツール**: Python 3.12.3
 
 ## 開発環境
 
@@ -74,8 +74,9 @@ docker-compose exec typespec-dev /bin/sh
 ### 2. Python環境の準備
 
 ```bash
-# Python依存関係のインストール
-npm run setup:python
+# Python 3.12.3依存関係のインストール（generatorコンテナ内で自動実行）
+# 手動で実行する場合：
+docker-compose exec generator pip install -r requirements.txt
 ```
 
 ### 3. TypeSpecからのコード生成
@@ -196,9 +197,9 @@ Angular生成 (frontend/src/)
 ```
 
 ### コンテナ構成
-- **typespecコンテナ**: TypeSpec → OpenAPI変換専用（Node.js環境）
-- **generatorコンテナ**: OpenAPI → 各種コード生成専用（Python環境）
-- **postgresコンテナ**: データベース環境
+- **typespecコンテナ**: TypeSpec → OpenAPI変換専用（Node.js 18環境）
+- **generatorコンテナ**: OpenAPI → 各種コード生成専用（Python 3.12.3環境）
+- **postgresコンテナ**: データベース環境（PostgreSQL 15）
 
 ### 5. 生成されるファイル
 

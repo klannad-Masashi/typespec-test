@@ -2,6 +2,8 @@
 """
 TypeSpec Generator メインスクリプト
 TypeSpec定義からDDL、Spring Boot、Angularのコードを生成
+
+Python 3.12.3対応版
 """
 
 import sys

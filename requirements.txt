@@ -1,28 +1,29 @@
 # TypeSpec Generator Python Dependencies
+# Python 3.12.3対応
 
 # YAMLファイル処理
-PyYAML==6.0.1
+PyYAML==6.0.2
 
 # テンプレートエンジン
-Jinja2==3.1.2
+Jinja2==3.1.4
 
 # HTTPリクエスト
-requests==2.31.0
+requests==2.32.3
 
-# ファイルシステム操作
-pathlib2==2.3.7
+# ファイルシステム操作（Python 3.12.3では標準ライブラリのpathlibを使用）
+# pathlib2==2.3.7  # Python 3.12.3では不要
 
 # JSONスキーマ処理
-jsonschema==4.19.0
+jsonschema==4.23.0
 
 # コマンドライン引数解析
 click==8.1.7
 
 # ログ出力
-colorlog==6.7.0
+colorlog==6.8.2
 
 # 開発・テスト用
-pytest==7.4.2
-pytest-cov==4.1.0
-flake8==6.0.0
-black==23.7.0
+pytest==8.3.2
+pytest-cov==5.0.0
+flake8==7.1.1
+black==24.8.0
