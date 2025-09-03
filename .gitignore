@@ -38,8 +38,26 @@ Thumbs.db
 # Temporary files
 temp/
 
-# Generated files (保持したいファイルがある場合は個別に除外)
-# backend/src/main/java/com/example/userapi/
-# frontend/src/app/models/
-# frontend/src/app/services/
-# database/ddl/
+# Generated files - TypeSpecから生成される成果物
+# OpenAPI仕様書
+temp/openapi/
+
+# CSV中間ファイル
+database/csv/
+
+# DDLファイル
+database/ddl/*.sql
+
+# Spring Boot生成ファイル
+backend/src/main/java/com/example/userapi/controller/
+backend/src/main/java/com/example/userapi/dto/
+backend/src/main/java/com/example/userapi/entity/
+backend/src/main/java/com/example/userapi/repository/
+backend/src/main/java/com/example/userapi/service/
+
+# Angular生成ファイル
+frontend/src/app/models/
+frontend/src/app/services/
+
+# バックアップファイル
+database/ddl/*_[0-9]*.sql
