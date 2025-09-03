@@ -49,6 +49,12 @@ angular_features:
   validation: true
   http_client: true
 
+# CSV設定
+csv:
+  output_dir: database/csv
+  table_definition_file: table_definitions.csv
+  encoding: utf-8
+
 # 生成設定
 generation:
   # 生成時にバックアップファイルを作成するか

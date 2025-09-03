@@ -6,11 +6,11 @@
   "scripts": {
     "typespec:compile": "tsp compile typespec/tsp/main.tsp --output-dir temp/openapi",
     "generate:all": "npm run typespec:compile && python generator/main.py --target all",
+    "generate:csv": "python generator/main.py --target csv",
     "generate:ddl": "python generator/main.py --target ddl",
     "generate:backend": "python generator/main.py --target spring", 
     "generate:frontend": "python generator/main.py --target angular",
-    "generate:python": "python generator/main.py --target all",
-    "setup:python": "pip install -r requirements.txt"
+    "setup:python": "pip install -r requirements.txt --break-system-packages"
   },
   "devDependencies": {
     "@typespec/compiler": "^0.59.0",

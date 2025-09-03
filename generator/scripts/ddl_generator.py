@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
 DDL Generator - PostgreSQL DDL生成スクリプト
-OpenAPI仕様からPostgreSQLのテーブル定義を生成
+CSV形式のテーブル定義からPostgreSQLのDDLを生成
 """
 
 import os
+import csv
 import yaml
 import logging
 from datetime import datetime
@@ -17,11 +18,17 @@ logger = logging.getLogger(__name__)
 class DDLGenerator:
     """PostgreSQL DDL生成クラス"""
     
-    def __init__(self, openapi_path, config_path=None):
-        self.openapi_path = openapi_path
+    def __init__(self, csv_path=None, config_path=None):
         self.config_path = config_path
         self.project_root = Path(__file__).parent.parent.parent
+        self.csv_dir = self.project_root / "database" / "csv"
         self.output_dir = self.project_root / "database" / "ddl"
+        
+        # CSVファイルパスの決定
+        if csv_path:
+            self.csv_path = csv_path
+        else:
+            self.csv_path = self.csv_dir / "table_definitions.csv"
         
         # Jinja2環境の初期化
         template_dir = self.project_root / "templates" / "ddl"
@@ -31,13 +38,40 @@ class DDLGenerator:
             lstrip_blocks=True
         )
         
-    def load_openapi_spec(self):
-        """OpenAPI仕様ファイルを読み込み"""
+    def load_csv_definitions(self):
+        """CSVファイルからテーブル定義を読み込み"""
         try:
-            with open(self.openapi_path, 'r', encoding='utf-8') as f:
-                return yaml.safe_load(f)
+            tables = {}
+            with open(self.csv_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                
+                for row in reader:
+                    table_name = row['table_name']
+                    
+                    # テーブルが未登録の場合は初期化
+                    if table_name not in tables:
+                        tables[table_name] = {
+                            'name': table_name,
+                            'columns': []
+                        }
+                    
+                    # カラム情報を追加
+                    column = {
+                        'name': row['column_name'],
+                        'type': row['data_type'],
+                        'nullable': row['nullable'].lower() == 'true',
+                        'primary_key': row['primary_key'].lower() == 'true',
+                        'unique': row['unique'].lower() == 'true',
+                        'default': row['default_value'] if row['default_value'] else None,
+                        'description': row.get('description', '')
+                    }
+                    
+                    tables[table_name]['columns'].append(column)
+                    
+            return tables
+            
         except Exception as e:
-            logger.error(f"OpenAPI仕様ファイルの読み込みに失敗: {e}")
+            logger.error(f"CSVファイルの読み込みに失敗: {e}")
             raise
             
     def load_config(self):
@@ -69,109 +103,6 @@ class DDLGenerator:
                     'timestamps': True
                 }
             }
-        }
-        
-    def extract_table_definitions(self, openapi_spec):
-        """OpenAPI仕様からテーブル定義を抽出"""
-        tables = {}
-        
-        # OpenAPIのcomponentsセクションからスキーマを取得
-        schemas = openapi_spec.get('components', {}).get('schemas', {})
-        
-        for schema_name, schema_def in schemas.items():
-            # モデル名からテーブル名を生成（例: User -> users）
-            table_name = self.model_name_to_table_name(schema_name)
-            
-            # プロパティからカラム定義を生成
-            columns = self.extract_columns(schema_def.get('properties', {}))
-            
-            tables[table_name] = {
-                'name': table_name,
-                'columns': columns,
-                'model_name': schema_name
-            }
-            
-        return tables
-        
-    def model_name_to_table_name(self, model_name):
-        """モデル名をテーブル名に変換（例: User -> users）"""
-        # 簡単な複数形変換（実際はより複雑な変換が必要な場合がある）
-        if model_name.lower() == 'user':
-            return 'users'
-        elif model_name.endswith('y'):
-            return model_name[:-1].lower() + 'ies'
-        elif model_name.endswith(('s', 'sh', 'ch', 'x', 'z')):
-            return model_name.lower() + 'es'
-        else:
-            return model_name.lower() + 's'
-            
-    def extract_columns(self, properties):
-        """プロパティからカラム定義を抽出"""
-        columns = []
-        
-        for prop_name, prop_def in properties.items():
-            column = self.property_to_column(prop_name, prop_def)
-            columns.append(column)
-            
-        # 共通カラムの追加
-        columns.extend([
-            {
-                'name': 'created_at',
-                'type': 'TIMESTAMP WITH TIME ZONE',
-                'nullable': False,
-                'default': 'CURRENT_TIMESTAMP'
-            },
-            {
-                'name': 'updated_at', 
-                'type': 'TIMESTAMP WITH TIME ZONE',
-                'nullable': False,
-                'default': 'CURRENT_TIMESTAMP'
-            }
-        ])
-        
-        return columns
-        
-    def property_to_column(self, prop_name, prop_def):
-        """プロパティをカラム定義に変換"""
-        prop_type = prop_def.get('type', 'string')
-        prop_format = prop_def.get('format')
-        
-        # TypeScriptの型からPostgreSQLの型へのマッピング
-        type_mapping = {
-            'string': 'VARCHAR(255)',
-            'integer': 'INTEGER', 
-            'number': 'DECIMAL',
-            'boolean': 'BOOLEAN',
-            'array': 'JSONB',
-            'object': 'JSONB'
-        }
-        
-        # フォーマットによる詳細な型指定
-        if prop_type == 'string':
-            if prop_format == 'email':
-                sql_type = 'VARCHAR(255)'
-            elif prop_format == 'date-time':
-                sql_type = 'TIMESTAMP WITH TIME ZONE'
-            elif prop_format == 'uuid':
-                sql_type = 'UUID'
-            else:
-                max_length = prop_def.get('maxLength', 255)
-                sql_type = f'VARCHAR({max_length})'
-        else:
-            sql_type = type_mapping.get(prop_type, 'VARCHAR(255)')
-            
-        # Primary Keyの判定
-        is_primary = prop_name.lower() == 'id'
-        if is_primary:
-            sql_type = 'SERIAL PRIMARY KEY' if prop_type == 'integer' else 'UUID PRIMARY KEY DEFAULT uuid_generate_v4()'
-            
-        return {
-            'name': prop_name,
-            'type': sql_type,
-            'nullable': not prop_def.get('required', False) and not is_primary,
-            'unique': prop_name in ['username', 'email'],
-            'default': prop_def.get('default'),
-            'primary_key': is_primary
         }
         
     def generate_ddl(self, tables, config):
@@ -233,12 +164,17 @@ class DDLGenerator:
     def generate(self):
         """DDL生成のメイン処理"""
         try:
-            # OpenAPI仕様とコンフィグを読み込み
-            openapi_spec = self.load_openapi_spec()
+            # CSVファイルとコンフィグを読み込み
             config = self.load_config()
             
-            # テーブル定義を抽出
-            tables = self.extract_table_definitions(openapi_spec)
+            # CSVファイルの存在チェック
+            if not os.path.exists(self.csv_path):
+                logger.error(f"CSVファイルが見つかりません: {self.csv_path}")
+                logger.info("先にCSV生成を実行してください")
+                return
+            
+            # CSVからテーブル定義を読み込み
+            tables = self.load_csv_definitions()
             
             if not tables:
                 logger.warning("テーブル定義が見つかりませんでした")
@@ -250,8 +186,15 @@ class DDLGenerator:
             # 出力ディレクトリを作成
             self.output_dir.mkdir(parents=True, exist_ok=True)
             
+            # テーブル名からファイル名を生成（複数テーブルがある場合は最初のテーブル名を使用）
+            table_names = list(tables.keys())
+            if table_names:
+                primary_table = table_names[0]  # 最初のテーブル名を使用
+            else:
+                primary_table = "schema"  # フォールバック
+                
             # ファイル出力
-            output_file = self.output_dir / "schema.sql"
+            output_file = self.output_dir / f"{primary_table}.sql"
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(ddl_content)
                 
@@ -259,7 +202,7 @@ class DDLGenerator:
             
             # バックアップファイルも作成
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_file = self.output_dir / f"schema_{timestamp}.sql"
+            backup_file = self.output_dir / f"{primary_table}_{timestamp}.sql"
             with open(backup_file, 'w', encoding='utf-8') as f:
                 f.write(ddl_content)
                 
@@ -323,5 +266,5 @@ class DDLGenerator:
 
 
 if __name__ == "__main__":
-    generator = DDLGenerator("temp/openapi/openapi.yaml")
+    generator = DDLGenerator()
     generator.generate()

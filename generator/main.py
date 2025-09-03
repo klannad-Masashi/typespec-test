@@ -14,6 +14,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+from generator.scripts.csv_generator import CSVGenerator
 from generator.scripts.ddl_generator import DDLGenerator
 from generator.scripts.spring_generator import SpringGenerator  
 from generator.scripts.angular_generator import AngularGenerator
@@ -31,7 +32,7 @@ def main():
     parser = argparse.ArgumentParser(description='TypeSpec Generator')
     parser.add_argument(
         '--target', 
-        choices=['all', 'ddl', 'spring', 'angular'],
+        choices=['all', 'csv', 'ddl', 'spring', 'angular'],
         default='all',
         help='生成対象 (default: all)'
     )
@@ -56,9 +57,15 @@ def main():
             return 1
             
         # 各ジェネレータの実行
+        if args.target in ['all', 'csv']:
+            logger.info("CSV生成を開始...")
+            csv_gen = CSVGenerator(args.input, args.config)
+            csv_gen.generate()
+            logger.info("CSV生成完了")
+            
         if args.target in ['all', 'ddl']:
             logger.info("DDL生成を開始...")
-            ddl_gen = DDLGenerator(args.input, args.config)
+            ddl_gen = DDLGenerator(config_path=args.config)
             ddl_gen.generate()
             logger.info("DDL生成完了")
             
