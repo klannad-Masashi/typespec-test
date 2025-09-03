@@ -95,6 +95,34 @@ model ErrorResponse {
   details?: string;
 }
 
+// レスポンス型定義
+@doc("ユーザー一覧レスポンス")
+model UserListResponse {
+  @doc("ユーザーリスト")
+  users: User[];
+
+  @doc("総件数")
+  total: int32;
+
+  @doc("現在のページ")
+  page: int32;
+
+  @doc("1ページあたりの件数")
+  limit: int32;
+}
+
+@doc("ユーザー作成レスポンス")
+model UserCreateResponse {
+  @doc("作成されたユーザー")
+  user: User;
+}
+
+@doc("削除成功レスポンス")
+model DeleteResponse {
+  @doc("削除成功")
+  message?: string;
+}
+
 // API エンドポイント定義
 @tag("Users")
 @route("/users")
@@ -110,20 +138,7 @@ namespace Users {
     
     @doc("検索キーワード（ユーザー名またはメールアドレス）")
     @query search?: string
-  ): {
-    @doc("ユーザーリスト")
-    @statusCode 200
-    users: User[];
-
-    @doc("総件数")
-    total: int32;
-
-    @doc("現在のページ")
-    page: int32;
-
-    @doc("1ページあたりの件数")
-    limit: int32;
-  } | ErrorResponse;
+  ): UserListResponse | ErrorResponse;
 
   @doc("ユーザー詳細取得")
   @get
@@ -137,11 +152,7 @@ namespace Users {
   op createUser(
     @doc("ユーザー作成データ")
     @body user: CreateUserRequest
-  ): {
-    @doc("作成されたユーザー")
-    @statusCode 201
-    user: User;
-  } | ErrorResponse;
+  ): UserCreateResponse | ErrorResponse;
 
   @doc("ユーザー更新")
   @put
@@ -158,9 +169,5 @@ namespace Users {
   op deleteUser(
     @doc("ユーザーID")
     @path userId: int32
-  ): {
-    @doc("削除成功")
-    @statusCode 204
-    _: void;
-  } | ErrorResponse;
+  ): DeleteResponse | ErrorResponse;
 }

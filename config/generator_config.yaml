@@ -1,0 +1,64 @@
+# TypeSpec Generator 設定ファイル
+
+# データベース設定
+database:
+  name: userdb
+  extensions:
+    - uuid-ossp
+  create_indexes: true
+  create_triggers: true
+  insert_sample_data: true
+
+# テーブル設定
+tables:
+  users:
+    primary_key: id
+    indexes:
+      - username
+      - email
+      - is_active
+    timestamps: true
+
+# Spring Boot設定
+spring:
+  base_package: com.example.userapi
+  controller_package: controller
+  dto_package: dto
+  entity_package: entity
+  service_package: service
+  repository_package: repository
+
+# Spring Boot機能設定
+features:
+  validation: true
+  swagger: true
+  jpa: true
+  rest_template: true
+
+# Angular設定
+angular:
+  api_base_url: http://localhost:8080/api
+  models_dir: app/models
+  services_dir: app/services
+  interceptors: true
+  error_handling: true
+
+# Angular機能設定
+angular_features:
+  reactive_forms: true
+  validation: true
+  http_client: true
+
+# 生成設定
+generation:
+  # 生成時にバックアップファイルを作成するか
+  create_backup: true
+  
+  # 既存ファイルを上書きするか
+  overwrite_existing: true
+  
+  # 日本語コメントを生成するか
+  japanese_comments: true
+  
+  # ログレベル
+  log_level: INFO

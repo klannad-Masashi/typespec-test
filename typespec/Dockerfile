@@ -4,18 +4,23 @@ FROM node:18-alpine
 # 作業ディレクトリの設定
 WORKDIR /app
 
-# 必要なツールのインストール
+# 必要なツールのインストール（Python環境を追加）
 RUN apk add --no-cache \
     git \
     curl \
-    openjdk11 \
-    && npm install -g @typespec/compiler @openapitools/openapi-generator-cli
+    python3 \
+    py3-pip \
+    && npm install -g @typespec/compiler
 
 # package.jsonとpackage-lock.jsonをコピー
 COPY package*.json ./
 
-# 依存関係のインストール
+# Node.js依存関係のインストール
 RUN npm install
+
+# requirements.txtをコピーしてPython依存関係をインストール
+COPY requirements.txt ./
+RUN pip3 install --break-system-packages -r requirements.txt
 
 # ソースコードをコピー
 COPY . .

@@ -1,0 +1,23 @@
+/**
+ * {{ model_name }} インターフェース
+ * {{ model.description }}
+ * TypeSpecから自動生成 - {{ generated_at }}
+ */
+export interface {{ model_name }} {
+{% for field in model.fields %}
+  /**
+   * {{ field.description if field.description else field.name }}
+   */
+  {{ field.name }}{{ '?' if field.optional else '' }}: {{ field.type }};
+{% endfor %}
+
+  /**
+   * 作成日時
+   */
+  createdAt?: Date;
+
+  /**
+   * 更新日時
+   */
+  updatedAt?: Date;
+}

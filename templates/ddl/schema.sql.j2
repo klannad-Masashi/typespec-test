@@ -1,0 +1,63 @@
+-- TypeSpecから自動生成されたPostgreSQL DDL
+-- 生成日時: {{ generated_at }}
+
+-- データベース作成（必要に応じてコメントアウト）
+-- CREATE DATABASE {{ database_name }};
+-- \c {{ database_name }};
+
+-- 拡張機能の有効化
+{% for extension in config.database.extensions %}
+CREATE EXTENSION IF NOT EXISTS "{{ extension }}";
+{% endfor %}
+
+{% for table_name, table in tables.items() %}
+-- {{ table_name }}テーブル
+CREATE TABLE {{ table_name }} (
+{% for column in table.columns %}
+    {{ column.name }} {{ column.type }}{% if not column.nullable %} NOT NULL{% endif %}{% if column.get('unique') %} UNIQUE{% endif %}{% if column.get('default') %} DEFAULT {{ column.default }}{% endif %}{% if not loop.last %},{% endif %}
+{% endfor %}
+);
+
+{% if config.database.create_indexes %}
+-- {{ table_name }}テーブルのインデックス作成
+{% for column in table.columns %}
+{% if column.get('unique') or column.name in ['username', 'email', 'is_active'] %}
+CREATE INDEX idx_{{ table_name }}_{{ column.name }} ON {{ table_name }}({{ column.name }});
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+
+{% if config.database.create_triggers %}
+-- 更新日時を自動更新するトリガー関数
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+{% for table_name, table in tables.items() %}
+-- {{ table_name }}テーブルの更新日時トリガー
+CREATE TRIGGER update_{{ table_name }}_updated_at 
+    BEFORE UPDATE ON {{ table_name }} 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+{% endfor %}
+{% endif %}
+
+{% if config.database.insert_sample_data %}
+-- サンプルデータ挿入
+INSERT INTO users (username, email, full_name) VALUES 
+    ('admin', 'admin@example.com', '管理者'),
+    ('user1', 'user1@example.com', '田中太郎'),
+    ('user2', 'user2@example.com', '佐藤花子');
+{% endif %}
+
+-- テーブル確認用クエリ
+{% for table_name, table in tables.items() %}
+-- SELECT * FROM {{ table_name }};
+{% endfor %}

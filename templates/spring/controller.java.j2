@@ -1,0 +1,68 @@
+package {{ config.spring.base_package }}.{{ config.spring.controller_package }};
+
+import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
+{% if config.features.swagger %}
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+{% endif %}
+{% if config.features.validation %}
+import javax.validation.Valid;
+{% endif %}
+import java.util.List;
+
+{% for model_name, model in models.items() %}
+import {{ model.package }}.{{ model_name }};
+{% endfor %}
+
+/**
+ * TypeSpecから自動生成されたAPIコントローラー
+ * 生成日時: {{ generated_at }}
+ */
+@RestController
+@RequestMapping("/api")
+{% if config.features.swagger %}
+@Tag(name = "User API", description = "ユーザー管理API")
+{% endif %}
+public class {{ controller_name }} {
+
+    // TODO: サービスクラスの注入
+    // @Autowired
+    // private {{ service_name }} {{ service_name.lower() }};
+
+{% for endpoint_name, endpoint in endpoints.items() %}
+    /**
+     * {{ endpoint.description }}
+     */
+    @{{ endpoint.method.title() }}Mapping("{{ endpoint.path }}")
+{% if config.features.swagger %}
+    @Operation(summary = "{{ endpoint.summary }}", description = "{{ endpoint.description }}")
+{% endif %}
+    public ResponseEntity<{{ endpoint.response_type }}> {{ endpoint.method_name }}(
+        {%- for param in endpoint.parameters -%}
+        {%- if param.in == 'path' -%}
+        @PathVariable {{ param.type }} {{ param.name }}
+        {%- elif param.in == 'query' -%}
+        @RequestParam{{ '(required = false)' if not param.required else '' }} {{ param.type }} {{ param.name }}
+        {%- endif -%}
+        {%- if not loop.last %}, {% endif -%}
+        {%- endfor -%}
+        {%- if endpoint.request_body -%}
+        {%- if endpoint.parameters %}, {% endif -%}
+        {% if config.features.validation %}@Valid {% endif %}@RequestBody {{ endpoint.request_body.type }} {{ endpoint.request_body.name }}
+        {%- endif -%}
+    ) {
+        // TODO: 実装
+        {% if endpoint.method == 'POST' %}
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+        {% elif endpoint.method == 'DELETE' %}
+        return ResponseEntity.noContent().build();
+        {% else %}
+        return ResponseEntity.ok().build();
+        {% endif %}
+    }
+
+{% endfor %}
+}

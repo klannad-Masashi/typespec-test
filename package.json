@@ -4,18 +4,20 @@
   "description": "TypeSpecを使用したWeb開発プロジェクト",
   "main": "index.js",
   "scripts": {
-    "typespec:compile": "tsp compile typespec/main.tsp --output-dir generated/openapi",
-    "generate:all": "npm run typespec:compile && npm run generate:ddl && npm run generate:backend && npm run generate:frontend",
-    "generate:ddl": "node scripts/generate-ddl.js",
-    "generate:backend": "openapi-generator-cli generate -i generated/openapi/openapi.yaml -g spring -o generated/backend --additional-properties=packageName=com.example.userapi",
-    "generate:frontend": "openapi-generator-cli generate -i generated/openapi/openapi.yaml -g typescript-angular -o generated/frontend"
+    "typespec:compile": "tsp compile typespec/tsp/main.tsp --output-dir temp/openapi",
+    "generate:all": "npm run typespec:compile && python generator/main.py --target all",
+    "generate:ddl": "python generator/main.py --target ddl",
+    "generate:backend": "python generator/main.py --target spring", 
+    "generate:frontend": "python generator/main.py --target angular",
+    "generate:python": "python generator/main.py --target all",
+    "setup:python": "pip install -r requirements.txt"
   },
   "devDependencies": {
     "@typespec/compiler": "^0.59.0",
     "@typespec/http": "^0.59.0",
     "@typespec/rest": "^0.59.0",
     "@typespec/openapi3": "^0.59.0",
-    "@openapitools/openapi-generator-cli": "^2.7.0"
+    "js-yaml": "^4.1.0"
   },
   "author": "",
   "license": "MIT"

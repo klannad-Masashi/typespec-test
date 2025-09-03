@@ -1,50 +1,104 @@
 # typespec-test
-TypeSpecを使用したWeb開発プロジェクト
 
-## TypeSpecとは
+TypeSpecをインプットとして、DDL、Controller、DTOを自動生成するツールプロジェクトです。
 
-TypeSpecは、Microsoft が開発したAPI定義のための宣言型言語です。REST API、OpenAPI、JSON Schema等を統一された構文で定義でき、複数の形式への出力を自動生成できます。
+## 概要
 
-### TypeSpecの特徴
-- **統一された構文**: 一つの定義から複数の出力形式を生成
-- **型安全性**: 強力な型システムによる安全なAPI設計
-- **再利用性**: 共通のモデルやパターンの効率的な再利用
-- **拡張性**: プラグインによる柔軟な拡張機能
+このプロジェクトは、TypeSpec定義ファイルから以下のコンポーネントを自動生成します：
 
-## アーキテクチャ構成
+- **DDL（Data Definition Language）**: PostgreSQL用のデータベーススキーマ
+- **Controller**: Spring Boot用のAPIコントローラー
+- **DTO**: フロントエンド（Angular）とバックエンド（Spring Boot）用のデータ転送オブジェクト
 
-本プロジェクトは以下の技術スタックで構成されたWebアプリケーションです：
+## 技術スタック
 
-### フロントエンド
-- **Angular**: TypeScriptベースのSPAフレームワーク
-- TypeSpecから自動生成されるTypeScript型定義とAPIクライアントを使用
+- **フロントエンド**: Angular
+- **バックエンド**: Spring Boot
+- **データベース**: PostgreSQL
+- **API定義**: TypeSpec
+- **生成ツール**: Python
 
-### バックエンド
-- **Spring Boot**: Java/Kotlinベースのマイクロサービスフレームワーク
-- TypeSpecから自動生成されるAPIコントローラーとDTOを使用
+## 開発環境
 
-### データベース
-- **PostgreSQL**: 高性能なオープンソースリレーショナルデータベース
-- TypeSpecから自動生成されるDDL（Data Definition Language）を使用
-- JSON型サポートによる柔軟なデータ構造対応
+### Docker環境での開発
 
-## TypeSpecからの自動生成機能
+このプロジェクトは、すべての開発作業をDockerコンテナ上で実施することを前提としています。
 
-このプロジェクトでは、TypeSpec定義から以下のコンポーネントを自動生成します：
+- TypeSpec定義の編集・コンパイル
+- 各レイヤーのコード生成
+- ビルドとテストの実行
 
-### 1. DDL（Data Definition Language）
-- データベーススキーマの自動生成
-- テーブル定義、制約、インデックスの作成
+すべての作業はdocker-compose.ymlで定義された環境内で行います。
 
-### 2. Spring Boot APIコントローラー
-- REST APIエンドポイントの自動生成
-- ルーティング設定とハンドラーメソッドの作成
+## プロジェクト構造
 
-### 3. DTO（Data Transfer Object）
-- API間でのデータ転送オブジェクトの自動生成
-- バリデーション設定の組み込み
+```
+typespec-test/
+├── typespec/              # TypeSpec関連
+│   ├── Dockerfile        # TypeSpec開発環境用イメージ
+│   └── tsp/              # TypeSpec定義ファイル
+│       └── main.tsp
+├── frontend/              # Angularフロントエンド
+│   ├── Dockerfile
+│   └── src/               # 生成されたAngular DTO/サービス
+├── backend/               # Spring Bootバックエンド
+│   ├── Dockerfile
+│   └── src/               # 生成されたController/DTO
+├── database/              # データベース関連
+│   ├── Dockerfile
+│   └── ddl/               # 生成されたDDLファイル
+├── generator/             # Python生成ツール
+│   ├── main.py           # メイン生成スクリプト
+│   └── scripts/          # 各生成スクリプト
+├── config/                # 生成設定
+├── templates/             # Jinja2テンプレート
+├── temp/                  # 一時ファイル（TypeSpecコンパイル出力）
+├── docker-compose.yml     # Docker環境設定
+├── package.json          # TypeSpec依存関係
+├── requirements.txt       # Python依存関係
+└── tspconfig.yaml        # TypeSpecコンパイル設定
+```
 
-### 4. Angular フロントエンド部品
-- TypeScript型定義の自動生成
-- APIクライアントサービスの自動生成
-- フォームバリデーションの自動設定
+## 開発環境の起動
+
+### 1. Docker環境の起動
+
+```bash
+# Docker Composeでコンテナを起動
+docker-compose up -d
+
+# TypeSpec開発コンテナに接続
+docker-compose exec typespec-dev /bin/sh
+```
+
+### 2. Python環境の準備
+
+```bash
+# Python依存関係のインストール
+npm run setup:python
+```
+
+### 3. TypeSpecからのコード生成
+
+```bash
+# 全てのコンポーネントを生成
+npm run generate:all
+
+# 個別生成も可能
+npm run generate:ddl        # DDLのみ
+npm run generate:backend    # Spring Bootのみ
+npm run generate:frontend   # Angularのみ
+```
+
+### 4. 生成されたファイルの確認
+
+```bash
+# DDLファイル
+ls -la database/ddl/
+
+# Spring Bootファイル
+ls -la backend/src/
+
+# Angularファイル
+ls -la frontend/src/
+```

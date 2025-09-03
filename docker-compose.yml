@@ -14,13 +14,15 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./generated/database:/docker-entrypoint-initdb.d
+      - ./database/ddl:/docker-entrypoint-initdb.d
     networks:
       - typespec-network
 
   # TypeSpec開発環境
   typespec-dev:
-    build: .
+    build:
+      context: .
+      dockerfile: typespec/Dockerfile
     container_name: typespec-dev
     volumes:
       - .:/app
@@ -37,7 +39,7 @@ services:
   #   image: openjdk:11-jre-slim
   #   container_name: typespec-api
   #   volumes:
-  #     - ./generated/backend:/app
+  #     - ./backend/src:/app
   #   working_dir: /app
   #   ports:
   #     - "8080:8080"
@@ -51,7 +53,7 @@ services:
   #   image: node:18-alpine
   #   container_name: typespec-frontend
   #   volumes:
-  #     - ./generated/frontend:/app
+  #     - ./frontend/src:/app
   #   working_dir: /app
   #   ports:
   #     - "4200:4200"
