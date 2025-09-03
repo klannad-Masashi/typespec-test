@@ -115,8 +115,8 @@ ls -la frontend/src/
 TypeSpecファイル（`typespec/tsp/main.tsp`）でAPIとモデルを定義します：
 
 ```bash
-# TypeSpec開発コンテナに接続
-docker-compose exec typespec-dev /bin/sh
+# TypeSpec専用コンテナに接続
+docker-compose exec typespec /bin/sh
 
 # TypeSpecファイルを編集（vim、nanoなどを使用）
 vi typespec/tsp/main.tsp
@@ -127,8 +127,8 @@ vi typespec/tsp/main.tsp
 定義を変更した後は、まずTypeSpecをOpenAPI仕様にコンパイルします：
 
 ```bash
-# TypeSpecをコンパイル（OpenAPI仕様を生成）
-npm run typespec:compile
+# TypeSpec専用コンテナでコンパイル
+docker-compose exec typespec npm run typespec:compile
 ```
 
 ### 3. コード生成の実行
@@ -136,43 +136,43 @@ npm run typespec:compile
 #### 3.1 全コンポーネントの一括生成
 
 ```bash
-# すべて（CSV→DDL→Spring Boot→Angular）を生成
-python generator/main.py --target all
+# Generator専用コンテナで全コンポーネント生成
+docker-compose exec generator python generator/main.py --target all
 ```
 
 #### 3.2 段階的生成（推奨）
 
 ```bash
 # 1. CSVファイル生成（テーブル定義の確認用）
-python generator/main.py --target csv
+docker-compose exec generator python generator/main.py --target csv
 
 # 2. CSV内容を確認
 cat database/csv/table_definitions.csv
 
 # 3. DDL生成（PostgreSQL DDL）
-python generator/main.py --target ddl
+docker-compose exec generator python generator/main.py --target ddl
 
 # 4. Spring Boot生成（Controller、DTO、Entity）
-python generator/main.py --target spring
+docker-compose exec generator python generator/main.py --target spring
 
 # 5. Angular生成（TypeScript型定義、サービス）
-python generator/main.py --target angular
+docker-compose exec generator python generator/main.py --target angular
 ```
 
 #### 3.3 個別コンポーネント生成
 
 ```bash
 # CSVのみ生成
-python generator/main.py --target csv
+docker-compose exec generator python generator/main.py --target csv
 
 # DDLのみ生成
-python generator/main.py --target ddl
+docker-compose exec generator python generator/main.py --target ddl
 
 # Spring Bootのみ生成
-python generator/main.py --target spring
+docker-compose exec generator python generator/main.py --target spring
 
 # Angularのみ生成
-python generator/main.py --target angular
+docker-compose exec generator python generator/main.py --target angular
 ```
 
 ### 4. 生成フローの詳細
@@ -182,11 +182,11 @@ python generator/main.py --target angular
 ```
 TypeSpec定義 (.tsp)
     ↓
-TypeSpecコンパイル
+TypeSpecコンパイル（typespecコンテナ）
     ↓
 OpenAPI仕様 (temp/openapi/openapi.yaml)
     ↓
-CSV生成 (database/csv/table_definitions.csv)
+CSV生成（generatorコンテナ）
     ↓
 DDL生成 (database/ddl/[モデル名].sql)
     ↓
@@ -194,6 +194,11 @@ Spring Boot生成 (backend/src/)
     ↓  
 Angular生成 (frontend/src/)
 ```
+
+### コンテナ構成
+- **typespecコンテナ**: TypeSpec → OpenAPI変換専用（Node.js環境）
+- **generatorコンテナ**: OpenAPI → 各種コード生成専用（Python環境）
+- **postgresコンテナ**: データベース環境
 
 ### 5. 生成されるファイル
 
@@ -241,13 +246,16 @@ angular:
 #### TypeSpecコンパイルエラー
 ```bash
 # TypeSpec構文エラーを確認
-npm run typespec:compile
+docker-compose exec typespec npm run typespec:compile
 ```
 
 #### 生成ファイルが見つからない
 ```bash
 # OpenAPI仕様ファイルの存在確認
 ls -la temp/openapi/openapi.yaml
+
+# コンテナ状態を確認
+docker-compose ps
 ```
 
 #### DDLでエンティティ以外のテーブルが生成される

@@ -16,12 +16,12 @@ services:
     networks:
       - typespec-network
 
-  # TypeSpec開発環境
-  typespec-dev:
+  # TypeSpec専用環境
+  typespec:
     build:
       context: .
       dockerfile: typespec/Dockerfile
-    container_name: typespec-dev
+    container_name: typespec
     volumes:
       - .:/app
       - /app/node_modules
@@ -29,8 +29,21 @@ services:
     command: /bin/sh -c "while :; do sleep 10; done"
     networks:
       - typespec-network
+
+  # Python Generator専用環境
+  generator:
+    build:
+      context: .
+      dockerfile: generator/Dockerfile
+    container_name: generator
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: /bin/sh -c "while :; do sleep 10; done"
+    networks:
+      - typespec-network
     depends_on:
-      - postgres
+      - typespec
 
   # Spring Boot API（将来的に追加）
   # api:
