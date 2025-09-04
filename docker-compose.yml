@@ -23,8 +23,8 @@ services:
       dockerfile: typespec/Dockerfile
     container_name: typespec
     volumes:
-      - ./typespec:/app
-    working_dir: /app
+      - .:/app    # プロジェクト全体をマウント
+    working_dir: /app/typespec
     command: /bin/sh -c "while :; do sleep 10; done"
     networks:
       - typespec-network
