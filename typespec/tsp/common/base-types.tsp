@@ -1,3 +1,4 @@
+import "@typespec/openapi3";
 import "@typespec/http";
 import "@typespec/rest";
 
@@ -73,10 +74,10 @@ model SearchQuery {
 @doc("作成・更新タイムスタンプ")
 model TimestampFields {
   @doc("作成日時")
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   createdAt: utcDateTime;
 
   @doc("更新日時")
-  @visibility("read")
+  @visibility(Lifecycle.Read)
   updatedAt: utcDateTime;
 }
