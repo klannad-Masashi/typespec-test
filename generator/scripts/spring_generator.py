@@ -25,7 +25,7 @@ class SpringGenerator:
         self.output_dir = self.project_root / "output" / "backend"
         
         # Jinja2環境の初期化
-        template_dir = self.project_root / "templates" / "spring"
+        template_dir = Path(__file__).parent.parent / "templates" / "spring"
         self.jinja_env = Environment(
             loader=FileSystemLoader(str(template_dir)),
             trim_blocks=True,

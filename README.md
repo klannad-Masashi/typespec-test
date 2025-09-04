@@ -45,7 +45,11 @@ typespec-test/
 │   ├── Dockerfile        # Python生成環境用イメージ
 │   ├── requirements.txt  # Python依存関係
 │   ├── main.py           # メイン生成スクリプト
-│   └── scripts/          # 各生成スクリプト
+│   ├── scripts/          # 各生成スクリプト
+│   └── templates/        # Jinja2テンプレート
+│       ├── angular/      # Angular用テンプレート
+│       ├── spring/       # Spring Boot用テンプレート
+│       └── ddl/          # DDL用テンプレート
 ├── output/                # 生成ファイル出力先
 │   ├── openapi/          # OpenAPI仕様書
 │   ├── csv/              # テーブル定義CSV
@@ -57,7 +61,7 @@ typespec-test/
 ├── database/              # データベース関連
 │   └── ddl/              # 初期化用DDLファイル
 ├── config/                # 生成設定
-├── templates/             # Jinja2テンプレート
+│   └── generator_config.yaml # ジェネレーター設定ファイル
 └── docker-compose.yml     # Docker環境設定
 ```
 

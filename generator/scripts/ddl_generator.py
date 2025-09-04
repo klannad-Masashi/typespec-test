@@ -31,7 +31,7 @@ class DDLGenerator:
             self.csv_path = self.csv_dir / "table_definitions.csv"
         
         # Jinja2環境の初期化
-        template_dir = self.project_root / "templates" / "ddl"
+        template_dir = Path(__file__).parent.parent / "templates" / "ddl"
         self.jinja_env = Environment(
             loader=FileSystemLoader(str(template_dir)),
             trim_blocks=True,

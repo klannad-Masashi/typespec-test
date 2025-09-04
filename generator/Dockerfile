@@ -17,7 +17,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # generatorコードとconfigをコピー
 COPY generator/ ./generator/
 COPY config/ ./config/
-COPY templates/ ./templates/
 
 # 開発用のエントリーポイント
 CMD ["python", "generator/main.py", "--help"]

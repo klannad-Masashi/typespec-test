@@ -25,7 +25,7 @@ class AngularGenerator:
         self.output_dir = self.project_root / "output" / "frontend"
         
         # Jinja2環境の初期化
-        template_dir = self.project_root / "templates" / "angular"
+        template_dir = Path(__file__).parent.parent / "templates" / "angular"
         self.jinja_env = Environment(
             loader=FileSystemLoader(str(template_dir)),
             trim_blocks=True,
