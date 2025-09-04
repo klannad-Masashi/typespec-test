@@ -61,3 +61,6 @@ frontend/src/app/services/
 
 # バックアップファイル
 database/ddl/*_[0-9]*.sql
+
+# アウトプット
+output/

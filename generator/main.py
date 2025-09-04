@@ -40,8 +40,8 @@ def main():
     )
     parser.add_argument(
         '--input',
-        default='temp/openapi/openapi.yaml',
-        help='OpenAPI仕様ファイルのパス (default: temp/openapi/openapi.yaml)'
+        default='output/openapi/openapi.yaml',
+        help='OpenAPI仕様ファイルのパス (default: output/openapi/openapi.yaml)'
     )
     parser.add_argument(
         '--config',

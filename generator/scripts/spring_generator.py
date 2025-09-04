@@ -21,7 +21,8 @@ class SpringGenerator:
         self.openapi_path = openapi_path
         self.config_path = config_path
         self.project_root = Path(__file__).parent.parent.parent
-        self.output_dir = self.project_root / "backend" / "src"
+        self.base_output_dir = self.project_root / "output" / "backend"
+        self.output_dir = self.project_root / "output" / "backend"
         
         # Jinja2環境の初期化
         template_dir = self.project_root / "templates" / "spring"
@@ -351,11 +352,12 @@ public class {{ model_name }} {
             # 出力ディレクトリを作成
             self.output_dir.mkdir(parents=True, exist_ok=True)
             
-            # パッケージディレクトリを作成
+            
+            # 既存構造用のパッケージディレクトリも作成
             base_package_path = self.output_dir / "main" / "java" / "com" / "example" / "userapi"
             base_package_path.mkdir(parents=True, exist_ok=True)
             
-            # Controllerを生成
+            # Controllerを生成（新構造）
             controller_dir = base_package_path / config['spring']['controller_package']
             controller_dir.mkdir(exist_ok=True)
             

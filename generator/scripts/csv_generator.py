@@ -21,7 +21,7 @@ class CSVGenerator:
         self.openapi_path = openapi_path
         self.config_path = config_path
         self.project_root = Path(__file__).parent.parent.parent
-        self.output_dir = self.project_root / "database" / "csv"
+        self.output_dir = self.project_root / "output" / "csv"
         
     def load_openapi_spec(self):
         """OpenAPI仕様ファイルを読み込み"""
@@ -48,7 +48,7 @@ class CSVGenerator:
         """デフォルト設定を返す"""
         return {
             'csv': {
-                'output_dir': 'database/csv',
+                'output_dir': 'output/csv',
                 'table_definition_file': 'table_definitions.csv',
                 'encoding': 'utf-8'
             }

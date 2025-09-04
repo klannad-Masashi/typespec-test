@@ -21,8 +21,8 @@ class DDLGenerator:
     def __init__(self, csv_path=None, config_path=None):
         self.config_path = config_path
         self.project_root = Path(__file__).parent.parent.parent
-        self.csv_dir = self.project_root / "database" / "csv"
-        self.output_dir = self.project_root / "database" / "ddl"
+        self.csv_dir = self.project_root / "output" / "csv"
+        self.output_dir = self.project_root / "output" / "ddl"
         
         # CSVファイルパスの決定
         if csv_path:

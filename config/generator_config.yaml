@@ -51,9 +51,18 @@ angular_features:
 
 # CSV設定
 csv:
-  output_dir: database/csv
+  output_dir: output/csv
   table_definition_file: table_definitions.csv
   encoding: utf-8
+
+# 出力ディレクトリ設定
+output_paths:
+  csv: output/csv
+  ddl: output/ddl
+  backend_dto: output/backend/dto
+  backend_controller: output/backend/controller
+  frontend_dto: output/frontend/dto
+  openapi: output/openapi
 
 # 生成設定
 generation:

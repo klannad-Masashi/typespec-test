@@ -21,7 +21,8 @@ class AngularGenerator:
         self.openapi_path = openapi_path
         self.config_path = config_path
         self.project_root = Path(__file__).parent.parent.parent
-        self.output_dir = self.project_root / "frontend" / "src"
+        self.base_output_dir = self.project_root / "output" / "frontend"
+        self.output_dir = self.project_root / "output" / "frontend"
         
         # Jinja2環境の初期化
         template_dir = self.project_root / "templates" / "angular"
@@ -313,7 +314,7 @@ export class {{ service_name }} {
     {% if method.path_params %}
     let url = `${this.baseUrl}{{ method.path }}`;
     {% for path_param in method.path_params %}
-    url = url.replace('{{{ path_param.name }}}', {{ path_param.name }}.toString());
+    url = url.replace('{' + '{{ path_param.name }}' + '}', {{ path_param.name }}.toString());
     {% endfor %}
     {% else %}
     const url = `${this.baseUrl}{{ method.path }}`;
