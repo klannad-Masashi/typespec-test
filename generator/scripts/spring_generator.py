@@ -433,5 +433,5 @@ public class {{ model_name }} {
 
 
 if __name__ == "__main__":
-    generator = SpringGenerator("temp/openapi/openapi.yaml")
+    generator = SpringGenerator("output/openapi/openapi.yaml")
     generator.generate()

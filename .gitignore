@@ -39,8 +39,6 @@ Thumbs.db
 temp/
 
 # Generated files - TypeSpecから生成される成果物
-# OpenAPI仕様書
-temp/openapi/
 
 # CSV中間ファイル
 database/csv/

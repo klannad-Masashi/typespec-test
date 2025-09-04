@@ -497,5 +497,5 @@ export class {{ service_name }} {
 
 
 if __name__ == "__main__":
-    generator = AngularGenerator("temp/openapi/openapi.yaml")
+    generator = AngularGenerator("output/openapi/openapi.yaml")
     generator.generate()

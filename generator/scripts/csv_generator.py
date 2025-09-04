@@ -242,5 +242,5 @@ class CSVGenerator:
 
 
 if __name__ == "__main__":
-    generator = CSVGenerator("temp/openapi/openapi.yaml")
+    generator = CSVGenerator("output/openapi/openapi.yaml")
     generator.generate()
