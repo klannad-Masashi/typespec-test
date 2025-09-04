@@ -15,22 +15,41 @@ logger = logging.getLogger(__name__)
 
 
 class CSVGenerator:
-    """CSV生成クラス"""
+    """CSV生成クラス - マルチAPI対応"""
     
-    def __init__(self, openapi_path, config_path=None):
-        self.openapi_path = openapi_path
+    def __init__(self, openapi_files, config_path=None):
+        """
+        Args:
+            openapi_files: dict または str
+                dict: {api_name: file_path} の形式（マルチAPIモード）
+                str: 単一ファイルパス（レガシーモード）
+        """
+        if isinstance(openapi_files, str):
+            # レガシーモード：単一ファイル
+            api_name = Path(openapi_files).stem.replace('-api', '')
+            if api_name == 'openapi':
+                api_name = 'main'
+            self.openapi_files = {api_name: openapi_files}
+        else:
+            # マルチAPIモード
+            self.openapi_files = openapi_files
+            
         self.config_path = config_path
         self.project_root = Path(__file__).parent.parent.parent
         self.output_dir = self.project_root / "output" / "csv"
         
-    def load_openapi_spec(self):
-        """OpenAPI仕様ファイルを読み込み"""
-        try:
-            with open(self.openapi_path, 'r', encoding='utf-8') as f:
-                return yaml.safe_load(f)
-        except Exception as e:
-            logger.error(f"OpenAPI仕様ファイルの読み込みに失敗: {e}")
-            raise
+    def load_multiple_openapi_specs(self):
+        """複数のOpenAPI仕様ファイルを読み込み"""
+        specs = {}
+        for api_name, file_path in self.openapi_files.items():
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    specs[api_name] = yaml.safe_load(f)
+                    logger.info(f"{api_name} API仕様を読み込みました: {file_path}")
+            except Exception as e:
+                logger.error(f"{api_name} API仕様ファイルの読み込みに失敗: {e}")
+                raise
+        return specs
             
     def load_config(self):
         """設定ファイルを読み込み"""
@@ -119,94 +138,108 @@ class CSVGenerator:
         else:
             return type_mapping.get(prop_type, 'VARCHAR(255)')
             
-    def extract_table_definitions_to_csv(self, openapi_spec):
-        """OpenAPI仕様からテーブル定義を抽出してCSV行のリストを作成"""
+    def extract_table_definitions_to_csv(self, openapi_specs):
+        """複数のOpenAPI仕様からテーブル定義を抽出してCSV行のリストを作成"""
         csv_rows = []
+        processed_tables = set()  # 重複テーブル名の管理
         
         # CSVヘッダー
         csv_rows.append([
-            'table_name', 'column_name', 'data_type', 'nullable', 
+            'api_name', 'table_name', 'column_name', 'data_type', 'nullable', 
             'primary_key', 'unique', 'default_value', 'description'
         ])
         
-        # OpenAPIのcomponentsセクションからスキーマを取得
-        schemas = openapi_spec.get('components', {}).get('schemas', {})
-        
-        for schema_name, schema_def in schemas.items():
-            # エンティティかどうかを判定
-            if not self.is_entity_model(schema_name, schema_def):
-                continue
-                
-            # モデル名からテーブル名を生成
-            table_name = self.model_name_to_table_name(schema_name)
+        # 各API仕様を処理
+        for api_name, openapi_spec in openapi_specs.items():
+            logger.info(f"{api_name} APIからテーブル定義を抽出中...")
             
-            # プロパティからカラム定義を生成
-            properties = schema_def.get('properties', {})
-            required_fields = schema_def.get('required', [])
+            # OpenAPIのcomponentsセクションからスキーマを取得
+            schemas = openapi_spec.get('components', {}).get('schemas', {})
             
-            for prop_name, prop_def in properties.items():
-                # Primary Keyの判定
-                is_primary = prop_name.lower() == 'id'
-                
-                # データ型の決定
-                if is_primary and prop_def.get('type') == 'integer':
-                    data_type = 'SERIAL PRIMARY KEY'
-                else:
-                    data_type = self.openapi_type_to_sql_type(prop_def)
-                
-                # Nullable判定
-                nullable = prop_name not in required_fields and not is_primary
-                
-                # Unique判定
-                unique = prop_name in ['username', 'email'] and not is_primary
-                
-                # デフォルト値
-                default_value = prop_def.get('default', '')
-                if default_value is True:
-                    default_value = 'true'
-                elif default_value is False:
-                    default_value = 'false'
-                elif default_value and prop_name in ['created_at', 'updated_at']:
-                    default_value = 'CURRENT_TIMESTAMP'
+            for schema_name, schema_def in schemas.items():
+                # エンティティかどうかを判定
+                if not self.is_entity_model(schema_name, schema_def):
+                    continue
                     
-                # 説明
-                description = prop_def.get('description', '')
+                # モデル名からテーブル名を生成
+                table_name = self.model_name_to_table_name(schema_name)
                 
-                csv_rows.append([
-                    table_name,
-                    prop_name, 
-                    data_type,
-                    'true' if nullable else 'false',
-                    'true' if is_primary else 'false',
-                    'true' if unique else 'false',
-                    str(default_value),
-                    description
-                ])
+                # 重複テーブル名の処理
+                full_table_name = f"{api_name}_{table_name}"
+                if table_name in processed_tables:
+                    logger.warning(f"重複するテーブル名を検出: {table_name} (API: {api_name})")
+                    table_name = full_table_name
+                else:
+                    processed_tables.add(table_name)
                 
-            # 共通カラムの追加（TypeSpecで定義されていない場合）
-            if 'created_at' not in properties:
-                csv_rows.append([
-                    table_name, 'created_at', 'TIMESTAMP WITH TIME ZONE',
-                    'false', 'false', 'false', 'CURRENT_TIMESTAMP', 'レコード作成日時'
-                ])
+                # プロパティからカラム定義を生成
+                properties = schema_def.get('properties', {})
+                required_fields = schema_def.get('required', [])
                 
-            if 'updated_at' not in properties:
-                csv_rows.append([
-                    table_name, 'updated_at', 'TIMESTAMP WITH TIME ZONE', 
-                    'false', 'false', 'false', 'CURRENT_TIMESTAMP', 'レコード更新日時'
-                ])
-                
+                for prop_name, prop_def in properties.items():
+                    # Primary Keyの判定
+                    is_primary = prop_name.lower() == 'id'
+                    
+                    # データ型の決定
+                    if is_primary and prop_def.get('type') == 'integer':
+                        data_type = 'SERIAL PRIMARY KEY'
+                    else:
+                        data_type = self.openapi_type_to_sql_type(prop_def)
+                    
+                    # Nullable判定
+                    nullable = prop_name not in required_fields and not is_primary
+                    
+                    # Unique判定
+                    unique = prop_name in ['username', 'email'] and not is_primary
+                    
+                    # デフォルト値
+                    default_value = prop_def.get('default', '')
+                    if default_value is True:
+                        default_value = 'true'
+                    elif default_value is False:
+                        default_value = 'false'
+                    elif default_value and prop_name in ['created_at', 'updated_at']:
+                        default_value = 'CURRENT_TIMESTAMP'
+                        
+                    # 説明
+                    description = prop_def.get('description', '')
+                    
+                    csv_rows.append([
+                        api_name,
+                        table_name,
+                        prop_name, 
+                        data_type,
+                        'true' if nullable else 'false',
+                        'true' if is_primary else 'false',
+                        'true' if unique else 'false',
+                        str(default_value),
+                        description
+                    ])
+                    
+                # 共通カラムの追加（TypeSpecで定義されていない場合）
+                if 'createdAt' not in properties:
+                    csv_rows.append([
+                        api_name, table_name, 'created_at', 'TIMESTAMP WITH TIME ZONE',
+                        'false', 'false', 'false', 'CURRENT_TIMESTAMP', 'レコード作成日時'
+                    ])
+                    
+                if 'updatedAt' not in properties:
+                    csv_rows.append([
+                        api_name, table_name, 'updated_at', 'TIMESTAMP WITH TIME ZONE', 
+                        'false', 'false', 'false', 'CURRENT_TIMESTAMP', 'レコード更新日時'
+                    ])
+                    
         return csv_rows
         
     def generate(self):
-        """CSV生成のメイン処理"""
+        """CSV生成のメイン処理 - マルチAPI対応"""
         try:
-            # OpenAPI仕様とコンフィグを読み込み
-            openapi_spec = self.load_openapi_spec()
+            # 複数OpenAPI仕様とコンフィグを読み込み
+            openapi_specs = self.load_multiple_openapi_specs()
             config = self.load_config()
             
             # テーブル定義をCSV形式で抽出
-            csv_rows = self.extract_table_definitions_to_csv(openapi_spec)
+            csv_rows = self.extract_table_definitions_to_csv(openapi_specs)
             
             if len(csv_rows) <= 1:  # ヘッダーのみの場合
                 logger.warning("テーブル定義が見つかりませんでした")
@@ -221,7 +254,7 @@ class CSVGenerator:
                 writer = csv.writer(f)
                 writer.writerows(csv_rows)
                 
-            logger.info(f"テーブル定義CSVを生成しました: {output_file}")
+            logger.info(f"マルチAPIテーブル定義CSVを生成しました: {output_file}")
             
             # バックアップファイルも作成
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -232,9 +265,20 @@ class CSVGenerator:
                 
             logger.info(f"バックアップCSVも作成しました: {backup_file}")
             
-            # 生成されたテーブル数をログ出力
-            table_count = len(set(row[0] for row in csv_rows[1:]))  # ヘッダー除外、重複削除
-            logger.info(f"生成されたテーブル数: {table_count}")
+            # API別統計をログ出力
+            api_stats = {}
+            for row in csv_rows[1:]:  # ヘッダー除外
+                api_name = row[0]
+                table_name = row[1]
+                if api_name not in api_stats:
+                    api_stats[api_name] = set()
+                api_stats[api_name].add(table_name)
+            
+            for api_name, tables in api_stats.items():
+                logger.info(f"{api_name} API: {len(tables)}テーブル ({', '.join(tables)})")
+            
+            total_tables = sum(len(tables) for tables in api_stats.values())
+            logger.info(f"生成されたテーブル数: {total_tables}")
             
         except Exception as e:
             logger.error(f"CSV生成中にエラーが発生しました: {e}")

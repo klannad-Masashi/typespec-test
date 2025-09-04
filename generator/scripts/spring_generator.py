@@ -15,14 +15,28 @@ logger = logging.getLogger(__name__)
 
 
 class SpringGenerator:
-    """Spring Boot生成クラス"""
+    """Spring Boot生成クラス - マルチAPI対応"""
     
-    def __init__(self, openapi_path, config_path=None):
-        self.openapi_path = openapi_path
+    def __init__(self, openapi_files, config_path=None):
+        """
+        Args:
+            openapi_files: dict または str
+                dict: {api_name: file_path} の形式（マルチAPIモード）
+                str: 単一ファイルパス（レガシーモード）
+        """
+        if isinstance(openapi_files, str):
+            # レガシーモード：単一ファイル
+            api_name = Path(openapi_files).stem.replace('-api', '')
+            if api_name == 'openapi':
+                api_name = 'main'
+            self.openapi_files = {api_name: openapi_files}
+        else:
+            # マルチAPIモード
+            self.openapi_files = openapi_files
+            
         self.config_path = config_path
         self.project_root = Path(__file__).parent.parent.parent
         self.base_output_dir = self.project_root / "output" / "backend"
-        self.output_dir = self.project_root / "output" / "backend"
         
         # Jinja2環境の初期化
         template_dir = Path(__file__).parent.parent / "templates" / "spring"
@@ -32,14 +46,18 @@ class SpringGenerator:
             lstrip_blocks=True
         )
         
-    def load_openapi_spec(self):
-        """OpenAPI仕様ファイルを読み込み"""
-        try:
-            with open(self.openapi_path, 'r', encoding='utf-8') as f:
-                return yaml.safe_load(f)
-        except Exception as e:
-            logger.error(f"OpenAPI仕様ファイルの読み込みに失敗: {e}")
-            raise
+    def load_multiple_openapi_specs(self):
+        """複数のOpenAPI仕様ファイルを読み込み"""
+        specs = {}
+        for api_name, file_path in self.openapi_files.items():
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    specs[api_name] = yaml.safe_load(f)
+                    logger.info(f"{api_name} API仕様を読み込みました: {file_path}")
+            except Exception as e:
+                logger.error(f"{api_name} API仕様ファイルの読み込みに失敗: {e}")
+                raise
+        return specs
             
     def load_config(self):
         """設定ファイルを読み込み"""
@@ -56,6 +74,9 @@ class SpringGenerator:
     def get_default_config(self):
         """デフォルト設定を返す"""
         return {
+            'global': {
+                'output_base': 'output/'
+            },
             'spring': {
                 'base_package': 'com.example.userapi',
                 'controller_package': 'controller',
@@ -69,17 +90,37 @@ class SpringGenerator:
                 'swagger': True,
                 'jpa': True,
                 'rest_template': True
-            }
+            },
+            'apis': {}  # API別設定（マルチAPI対応）
         }
         
-    def extract_models_and_paths(self, openapi_spec):
-        """OpenAPI仕様からモデルとAPIパスを抽出"""
+    def get_api_package_name(self, api_name, config):
+        """API別のパッケージ名を取得"""
+        # API別設定がある場合はそれを使用
+        if 'apis' in config and api_name in config['apis']:
+            api_config = config['apis'][api_name]
+            if 'spring' in api_config and 'base_package' in api_config['spring']:
+                return api_config['spring']['base_package']
+        
+        # デフォルトパッケージ名を生成
+        base = config.get('spring', {}).get('base_package', 'com.example')
+        if base.endswith('api'):
+            base = base[:-3]  # 既存の'api'を削除
+        return f"{base}.{api_name}api"
+    
+    def get_api_output_dir(self, api_name, package_name):
+        """API別の出力ディレクトリを取得"""
+        package_path = package_name.replace('.', '/')
+        return self.base_output_dir / "main" / "java" / package_path
+        
+    def extract_models_and_paths_for_api(self, api_name, openapi_spec, config):
+        """API別にモデルとAPIパスを抽出"""
         # スキーマからモデルを抽出
         models = {}
         schemas = openapi_spec.get('components', {}).get('schemas', {})
         
         for schema_name, schema_def in schemas.items():
-            models[schema_name] = self.convert_schema_to_model(schema_name, schema_def)
+            models[schema_name] = self.convert_schema_to_model(schema_name, schema_def, api_name, config)
             
         # パスからAPIエンドポイントを抽出
         endpoints = {}
@@ -89,11 +130,13 @@ class SpringGenerator:
             for method, method_def in path_def.items():
                 if method.upper() in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']:
                     endpoint_key = f"{method.upper()}_{path.replace('/', '_').replace('{', '').replace('}', '')}"
-                    endpoints[endpoint_key] = self.convert_path_to_endpoint(path, method, method_def)
+                    endpoint_data = self.convert_path_to_endpoint(path, method, method_def)
+                    endpoint_data['api_name'] = api_name
+                    endpoints[endpoint_key] = endpoint_data
                     
         return models, endpoints
         
-    def convert_schema_to_model(self, schema_name, schema_def):
+    def convert_schema_to_model(self, schema_name, schema_def, api_name, config):
         """OpenAPIスキーマをJavaモデルに変換"""
         properties = schema_def.get('properties', {})
         required = schema_def.get('required', [])
@@ -108,12 +151,17 @@ class SpringGenerator:
                 'validation': self.generate_validation_annotations(prop_def, prop_name in required)
             }
             fields.append(field)
+        
+        # API別のパッケージ名を取得
+        base_package = self.get_api_package_name(api_name, config)
+        dto_package = config.get('spring', {}).get('dto_package', 'dto')
             
         return {
             'name': schema_name,
             'fields': fields,
             'description': schema_def.get('description', ''),
-            'package': f"{self.get_default_config()['spring']['base_package']}.{self.get_default_config()['spring']['dto_package']}"
+            'package': f"{base_package}.{dto_package}",
+            'api_name': api_name
         }
         
     def convert_path_to_endpoint(self, path, method, method_def):
@@ -282,6 +330,60 @@ public class UserController {
             generated_at=datetime.now().isoformat()
         )
         
+    def generate_api_controller(self, api_name, models, endpoints, config, package_name):
+        """API別Controllerクラスを生成"""
+        controller_template = """package {{ package_name }}.{{ config.spring.controller_package }};
+
+import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import javax.validation.Valid;
+import java.util.List;
+
+{% for model_name, model in models.items() %}
+import {{ model.package }}.{{ model_name }};
+{% endfor %}
+
+/**
+ * {{ api_name|title }} API Controller
+ * TypeSpecから自動生成されたAPIコントローラー
+ * 生成日時: {{ generated_at }}
+ */
+@RestController
+@RequestMapping("/api/{{ api_name }}")
+@Tag(name = "{{ api_name|title }} API", description = "{{ api_name|title }} 管理API")
+public class {{ api_name|title }}Controller {
+
+    // TODO: サービスクラスの注入
+    // @Autowired
+    // private {{ api_name|title }}Service {{ api_name }}Service;
+
+    /**
+     * TODO: 実際のエンドポイントメソッドを実装
+     * 現在はプレースホルダーメソッドです
+     */
+    @GetMapping
+    @Operation(summary = "{{ api_name }} 一覧取得", description = "{{ api_name }} の一覧を取得します")
+    public ResponseEntity<String> get{{ api_name|title }}List() {
+        // TODO: 実装
+        return ResponseEntity.ok("{{ api_name|title }} API is working!");
+    }
+}"""
+
+        from jinja2 import Template
+        template = Template(controller_template)
+        return template.render(
+            api_name=api_name,
+            models=models,
+            endpoints=endpoints,
+            config=config,
+            package_name=package_name,
+            generated_at=datetime.now().isoformat()
+        )
+        
     def generate_dto(self, model_name, model, config):
         """DTOクラスを生成"""
         dto_template = """package {{ model.package }};
@@ -336,49 +438,55 @@ public class {{ model_name }} {
         )
         
     def generate(self):
-        """Spring Boot生成のメイン処理"""
+        """Spring Boot生成のメイン処理 - マルチAPI対応"""
         try:
-            # OpenAPI仕様とコンフィグを読み込み
-            openapi_spec = self.load_openapi_spec()
+            # 複数OpenAPI仕様とコンフィグを読み込み
+            openapi_specs = self.load_multiple_openapi_specs()
             config = self.load_config()
             
-            # モデルとエンドポイントを抽出
-            models, endpoints = self.extract_models_and_paths(openapi_spec)
-            
-            if not models:
-                logger.warning("モデル定義が見つかりませんでした")
-                models = self.get_default_models()
+            # 各APIごとに生成
+            for api_name, openapi_spec in openapi_specs.items():
+                logger.info(f"{api_name} APIのSpring Bootコードを生成中...")
                 
-            # 出力ディレクトリを作成
-            self.output_dir.mkdir(parents=True, exist_ok=True)
-            
-            
-            # 既存構造用のパッケージディレクトリも作成
-            base_package_path = self.output_dir / "main" / "java" / "com" / "example" / "userapi"
-            base_package_path.mkdir(parents=True, exist_ok=True)
-            
-            # Controllerを生成（新構造）
-            controller_dir = base_package_path / config['spring']['controller_package']
-            controller_dir.mkdir(exist_ok=True)
-            
-            controller_content = self.generate_controller(models, endpoints, config)
-            controller_file = controller_dir / "UserController.java"
-            
-            with open(controller_file, 'w', encoding='utf-8') as f:
-                f.write(controller_content)
-            logger.info(f"Controllerを生成しました: {controller_file}")
-            
-            # DTOクラスを生成
-            dto_dir = base_package_path / config['spring']['dto_package']
-            dto_dir.mkdir(exist_ok=True)
-            
-            for model_name, model in models.items():
-                dto_content = self.generate_dto(model_name, model, config)
-                dto_file = dto_dir / f"{model_name}.java"
+                # モデルとエンドポイントを抽出
+                models, endpoints = self.extract_models_and_paths_for_api(api_name, openapi_spec, config)
                 
-                with open(dto_file, 'w', encoding='utf-8') as f:
-                    f.write(dto_content)
-                logger.info(f"DTOを生成しました: {dto_file}")
+                if not models:
+                    logger.warning(f"{api_name} API: モデル定義が見つかりませんでした")
+                    continue
+                    
+                # API別のパッケージ名と出力ディレクトリを取得
+                package_name = self.get_api_package_name(api_name, config)
+                output_dir = self.get_api_output_dir(api_name, package_name)
+                
+                # 出力ディレクトリを作成
+                output_dir.mkdir(parents=True, exist_ok=True)
+                
+                # Controllerを生成
+                controller_dir = output_dir / config['spring']['controller_package']
+                controller_dir.mkdir(exist_ok=True)
+                
+                controller_name = f"{api_name.title()}Controller"
+                controller_content = self.generate_api_controller(api_name, models, endpoints, config, package_name)
+                controller_file = controller_dir / f"{controller_name}.java"
+                
+                with open(controller_file, 'w', encoding='utf-8') as f:
+                    f.write(controller_content)
+                logger.info(f"Controllerを生成しました: {controller_file}")
+                
+                # DTOクラスを生成
+                dto_dir = output_dir / config['spring']['dto_package']
+                dto_dir.mkdir(exist_ok=True)
+                
+                for model_name, model in models.items():
+                    dto_content = self.generate_dto(model_name, model, config)
+                    dto_file = dto_dir / f"{model_name}.java"
+                    
+                    with open(dto_file, 'w', encoding='utf-8') as f:
+                        f.write(dto_content)
+                    logger.info(f"DTOを生成しました: {dto_file}")
+                    
+                logger.info(f"{api_name} API生成完了: {len(models)}モデル, {len(endpoints)}エンドポイント")
                 
         except Exception as e:
             logger.error(f"Spring Boot生成中にエラーが発生しました: {e}")

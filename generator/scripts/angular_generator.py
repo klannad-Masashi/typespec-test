@@ -15,14 +15,28 @@ logger = logging.getLogger(__name__)
 
 
 class AngularGenerator:
-    """Angular生成クラス"""
+    """Angular生成クラス - マルチAPI対応"""
     
-    def __init__(self, openapi_path, config_path=None):
-        self.openapi_path = openapi_path
+    def __init__(self, openapi_files, config_path=None):
+        """
+        Args:
+            openapi_files: dict または str
+                dict: {api_name: file_path} の形式（マルチAPIモード）
+                str: 単一ファイルパス（レガシーモード）
+        """
+        if isinstance(openapi_files, str):
+            # レガシーモード：単一ファイル
+            api_name = Path(openapi_files).stem.replace('-api', '')
+            if api_name == 'openapi':
+                api_name = 'main'
+            self.openapi_files = {api_name: openapi_files}
+        else:
+            # マルチAPIモード
+            self.openapi_files = openapi_files
+            
         self.config_path = config_path
         self.project_root = Path(__file__).parent.parent.parent
         self.base_output_dir = self.project_root / "output" / "frontend"
-        self.output_dir = self.project_root / "output" / "frontend"
         
         # Jinja2環境の初期化
         template_dir = Path(__file__).parent.parent / "templates" / "angular"
@@ -32,14 +46,18 @@ class AngularGenerator:
             lstrip_blocks=True
         )
         
-    def load_openapi_spec(self):
-        """OpenAPI仕様ファイルを読み込み"""
-        try:
-            with open(self.openapi_path, 'r', encoding='utf-8') as f:
-                return yaml.safe_load(f)
-        except Exception as e:
-            logger.error(f"OpenAPI仕様ファイルの読み込みに失敗: {e}")
-            raise
+    def load_multiple_openapi_specs(self):
+        """複数のOpenAPI仕様ファイルを読み込み"""
+        specs = {}
+        for api_name, file_path in self.openapi_files.items():
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    specs[api_name] = yaml.safe_load(f)
+                    logger.info(f"{api_name} API仕様を読み込みました: {file_path}")
+            except Exception as e:
+                logger.error(f"{api_name} API仕様ファイルの読み込みに失敗: {e}")
+                raise
+        return specs
             
     def load_config(self):
         """設定ファイルを読み込み"""
@@ -67,17 +85,45 @@ class AngularGenerator:
                 'reactive_forms': True,
                 'validation': True,
                 'http_client': True
-            }
+            },
+            'apis': {}  # API別設定（マルチAPI対応）
         }
         
-    def extract_models_and_services(self, openapi_spec):
-        """OpenAPI仕様からモデルとサービスを抽出"""
+    def get_api_module_name(self, api_name):
+        """API名からAngularモジュール名を取得"""
+        return api_name.lower()
+    
+    def get_api_output_dirs(self, api_name):
+        """API別の出力ディレクトリを取得"""
+        module_name = self.get_api_module_name(api_name)
+        base_dir = self.base_output_dir / "app" / module_name
+        return {
+            'models': base_dir / "models",
+            'services': base_dir / "services"
+        }
+    
+    def get_api_base_url(self, api_name, config):
+        """API別のベースURLを取得"""
+        # API別設定がある場合はそれを使用
+        if 'apis' in config and api_name in config['apis']:
+            api_config = config['apis'][api_name]
+            if 'angular' in api_config and 'api_base_url' in api_config['angular']:
+                return api_config['angular']['api_base_url']
+        
+        # デフォルトURLを生成
+        base_url = config.get('angular', {}).get('api_base_url', 'http://localhost:8080/api')
+        return f"{base_url}/{api_name}"
+        
+    def extract_models_and_services_for_api(self, api_name, openapi_spec):
+        """API別にモデルとサービスを抽出"""
         # スキーマからTypeScript interfaceを生成
         models = {}
         schemas = openapi_spec.get('components', {}).get('schemas', {})
         
         for schema_name, schema_def in schemas.items():
-            models[schema_name] = self.convert_schema_to_interface(schema_name, schema_def)
+            interface_data = self.convert_schema_to_interface(schema_name, schema_def)
+            interface_data['api_name'] = api_name
+            models[schema_name] = interface_data
             
         # パスからAPIサービスを生成
         services = {}
@@ -86,10 +132,11 @@ class AngularGenerator:
         for path, path_def in paths.items():
             for method, method_def in path_def.items():
                 if method.upper() in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']:
-                    service_name = self.extract_service_name_from_path(path)
+                    service_name = self.extract_service_name_from_path(path, api_name)
                     if service_name not in services:
                         services[service_name] = {
                             'name': service_name,
+                            'api_name': api_name,
                             'methods': []
                         }
                     
@@ -119,17 +166,28 @@ class AngularGenerator:
             'description': schema_def.get('description', '')
         }
         
-    def extract_service_name_from_path(self, path):
+    def extract_service_name_from_path(self, path, api_name=None):
         """パスからサービス名を抽出（例: /users -> UserService）"""
         # パスの最初のセグメントをサービス名として使用
         segments = path.strip('/').split('/')
+        
+        # /api/users のような場合、"api" を除去
+        if segments and segments[0] == 'api':
+            segments = segments[1:]
+            
         if segments:
             resource = segments[0]
             # 複数形を単数形に変換（簡単な実装）
             if resource.endswith('s'):
                 resource = resource[:-1]
-            return f"{resource.capitalize()}Service"
-        return "ApiService"
+            service_name = f"{resource.capitalize()}Service"
+            
+            # API名が指定されている場合はプレフィックスとして使用
+            if api_name and api_name.lower() != resource.lower():
+                service_name = f"{api_name.capitalize()}{service_name}"
+                
+            return service_name
+        return f"{api_name.capitalize()}Service" if api_name else "ApiService"
         
     def convert_path_to_service_method(self, path, method, method_def):
         """OpenAPIパスをAngularサービスメソッドに変換"""
@@ -141,6 +199,16 @@ class AngularGenerator:
         query_params = []
         
         for param in method_def.get('parameters', []):
+            # $refパラメータの場合はスキップ（現時点では完全な参照解決は実装しない）
+            if '$ref' in param:
+                logger.debug(f"パラメータ参照をスキップ: {param.get('$ref')}")
+                continue
+                
+            # nameが存在しない場合はスキップ
+            if 'name' not in param:
+                logger.warning(f"パラメータに'name'がありません: {param}")
+                continue
+                
             param_info = {
                 'name': param['name'],
                 'type': self.openapi_type_to_typescript_type(param.get('schema', {})),
@@ -148,9 +216,10 @@ class AngularGenerator:
                 'description': param.get('description', '')
             }
             
-            if param['in'] == 'path':
+            param_in = param.get('in', 'query')
+            if param_in == 'path':
                 path_params.append(param_info)
-            elif param['in'] == 'query':
+            elif param_in == 'query':
                 query_params.append(param_info)
                 
             parameters.append(param_info)
@@ -280,12 +349,11 @@ export interface {{ model_name }} {
             generated_at=datetime.now().isoformat()
         )
         
-    def generate_service(self, service_name, service, models, config):
+    def generate_service(self, service_name, service, models, api_base_url):
         """Angularサービスを生成"""
         service_template = """import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
 
 {% for model_name in models.keys() %}
 import { {{ model_name }} } from '../models/{{ model_name.lower() }}.model';
@@ -293,6 +361,7 @@ import { {{ model_name }} } from '../models/{{ model_name.lower() }}.model';
 
 /**
  * {{ service_name }}
+ * {{ service.api_name|title }} API用サービス
  * TypeSpecから自動生成されたAPIサービス
  * 生成日時: {{ generated_at }}
  */
@@ -301,7 +370,7 @@ import { {{ model_name }} } from '../models/{{ model_name.lower() }}.model';
 })
 export class {{ service_name }} {
 
-  private readonly baseUrl = '{{ config.angular.api_base_url }}';
+  private readonly baseUrl = '{{ api_base_url }}';
 
   constructor(private http: HttpClient) {}
 
@@ -351,59 +420,68 @@ export class {{ service_name }} {
             service_name=service_name,
             service=service,
             models=models,
-            config=config,
+            api_base_url=api_base_url,
             generated_at=datetime.now().isoformat()
         )
         
     def generate(self):
-        """Angular生成のメイン処理"""
+        """Angular生成のメイン処理 - マルチAPI対応"""
         try:
-            # OpenAPI仕様とコンフィグを読み込み
-            openapi_spec = self.load_openapi_spec()
+            # 複数OpenAPI仕様とコンフィグを読み込み
+            openapi_specs = self.load_multiple_openapi_specs()
             config = self.load_config()
             
-            # モデルとサービスを抽出
-            models, services = self.extract_models_and_services(openapi_spec)
-            
-            if not models:
-                logger.warning("モデル定義が見つかりませんでした")
-                models = self.get_default_models()
+            # 各APIごとに生成
+            for api_name, openapi_spec in openapi_specs.items():
+                logger.info(f"{api_name} APIのAngularコードを生成中...")
                 
-            if not services:
-                logger.warning("API定義が見つかりませんでした")
-                services = self.get_default_services()
+                # モデルとサービスを抽出
+                models, services = self.extract_models_and_services_for_api(api_name, openapi_spec)
                 
-            # 出力ディレクトリを作成
-            self.output_dir.mkdir(parents=True, exist_ok=True)
-            
-            # モデルディレクトリを作成
-            models_dir = self.output_dir / config['angular']['models_dir']
-            models_dir.mkdir(parents=True, exist_ok=True)
-            
-            # TypeScriptインターフェースを生成
-            for model_name, model in models.items():
-                interface_content = self.generate_interface(model_name, model)
-                interface_file = models_dir / f"{model_name.lower()}.model.ts"
+                if not models:
+                    logger.warning(f"{api_name} API: モデル定義が見つかりませんでした")
+                    models = {}
+                    
+                if not services:
+                    logger.warning(f"{api_name} API: API定義が見つかりませんでした")
+                    services = {}
+                    
+                # API別の出力ディレクトリを取得
+                output_dirs = self.get_api_output_dirs(api_name)
+                api_base_url = self.get_api_base_url(api_name, config)
                 
-                with open(interface_file, 'w', encoding='utf-8') as f:
-                    f.write(interface_content)
-                logger.info(f"TypeScriptインターフェースを生成しました: {interface_file}")
-                
-            # サービスディレクトリを作成
-            services_dir = self.output_dir / config['angular']['services_dir']
-            services_dir.mkdir(parents=True, exist_ok=True)
-            
-            # Angularサービスを生成
-            for service_name, service in services.items():
-                service_content = self.generate_service(service_name, service, models, config)
-                service_file = services_dir / f"{service_name.lower().replace('service', '')}.service.ts"
-                
-                with open(service_file, 'w', encoding='utf-8') as f:
-                    f.write(service_content)
-                logger.info(f"Angularサービスを生成しました: {service_file}")
+                # モデルディレクトリを作成してインターフェース生成
+                if models:
+                    output_dirs['models'].mkdir(parents=True, exist_ok=True)
+                    
+                    for model_name, model in models.items():
+                        interface_content = self.generate_interface(model_name, model)
+                        interface_file = output_dirs['models'] / f"{model_name.lower()}.model.ts"
+                        
+                        with open(interface_file, 'w', encoding='utf-8') as f:
+                            f.write(interface_content)
+                        logger.info(f"TypeScriptインターフェースを生成しました: {interface_file}")
+                        
+                # サービスディレクトリを作成してサービス生成
+                if services:
+                    output_dirs['services'].mkdir(parents=True, exist_ok=True)
+                    
+                    for service_name, service in services.items():
+                        service_content = self.generate_service(service_name, service, models, api_base_url)
+                        # サービス名からファイル名を生成（例: UserService -> user.service.ts）
+                        service_file_name = service_name.lower().replace('service', '') + '.service.ts'
+                        service_file = output_dirs['services'] / service_file_name
+                        
+                        with open(service_file, 'w', encoding='utf-8') as f:
+                            f.write(service_content)
+                        logger.info(f"Angularサービスを生成しました: {service_file}")
+                        
+                logger.info(f"{api_name} API生成完了: {len(models)}モデル, {len(services)}サービス")
                 
         except Exception as e:
+            import traceback
             logger.error(f"Angular生成中にエラーが発生しました: {e}")
+            logger.error(f"トレースバック: {traceback.format_exc()}")
             raise
             
     def get_default_models(self):
