@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # requirements.txtをコピーしてPython依存関係をインストール
-COPY requirements.txt ./
+COPY generator/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # generatorコードとconfigをコピー

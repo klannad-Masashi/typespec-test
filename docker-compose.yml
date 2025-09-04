@@ -23,7 +23,7 @@ services:
       dockerfile: typespec/Dockerfile
     container_name: typespec
     volumes:
-      - .:/app
+      - ./typespec:/app
     working_dir: /app
     command: /bin/sh -c "while :; do sleep 10; done"
     networks:

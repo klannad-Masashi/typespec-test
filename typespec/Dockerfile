@@ -1,24 +1,23 @@
 # TypeSpec専用のDockerファイル
-FROM node:18-alpine
+FROM node:24-slim
 
 # 作業ディレクトリの設定
 WORKDIR /app
 
-# 必要なツールのインストール
-RUN apk add --no-cache \
+# 必要なツールのインストール  
+RUN apt-get update && apt-get install -y \
     git \
     curl \
+    && rm -rf /var/lib/apt/lists/* \
     && npm install -g @typespec/compiler
 
-# package.jsonとpackage-lock.jsonをコピー
-COPY package*.json ./
-
-# Node.js依存関係のインストール
+# package.jsonをルートにコピーしてインストール
+COPY typespec/package*.json ./
 RUN npm install
 
 # TypeSpec関連ファイルをコピー
-COPY typespec/ ./typespec/
-COPY tspconfig.yaml ./
+COPY typespec/tsp/ ./tsp/
+COPY typespec/tspconfig.yaml ./
 
 # 開発用のエントリーポイント
 CMD ["npm", "run", "typespec:compile"]
