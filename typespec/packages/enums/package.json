@@ -1,0 +1,13 @@
+{
+  "name": "@typespec-test/enums",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./lib.tsp",
+  "typespec": {
+    "main": "./lib.tsp"
+  },
+  "scripts": {
+    "build": "echo 'No build needed for enum definitions'",
+    "clean": "echo 'No clean needed for enum definitions'"
+  }
+}

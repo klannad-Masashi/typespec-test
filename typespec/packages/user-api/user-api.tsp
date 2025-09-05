@@ -2,11 +2,15 @@ import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
 import "@typespec/versioning";
-import "../common/base-types.tsp";
+import "@typespec-test/common";
+import "@typespec-test/decorators";
+import "@typespec-test/enums";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.Versioning;
+using MyService.DDL;
+using MyService.Enums;
 
 @service({
   title: "User Management API",
@@ -16,6 +20,8 @@ namespace UserManagementAPI;
 
 // ユーザーモデル定義
 @doc("ユーザー情報")
+@MyService.DDL.makeDDL
+@MyService.DDL.tableName("app_users")
 model User {
   @doc("ユーザーID（自動生成）")
   @key
@@ -24,6 +30,7 @@ model User {
   @doc("ユーザー名")
   @minLength(1)
   @maxLength(50)
+  @MyService.DDL.length(50)
   username: string;
 
   @doc("メールアドレス")
@@ -32,10 +39,15 @@ model User {
 
   @doc("フルネーム")
   @maxLength(100)
+  @MyService.DDL.length(100)
   fullName: string;
 
   @doc("アクティブフラグ")
   isActive: boolean = true;
+
+  @doc("内部フィールド（DDL生成除外）")
+  @MyService.DDL.notAddForDDL
+  internalField?: string;
 
   // 共通のタイムスタンプを継承
   ...TimestampFields;

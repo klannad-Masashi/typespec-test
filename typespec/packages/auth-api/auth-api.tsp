@@ -2,7 +2,7 @@ import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
 import "@typespec/versioning";
-import "../common/base-types.tsp";
+import "@typespec-test/common";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;

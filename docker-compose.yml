@@ -24,6 +24,7 @@ services:
     container_name: typespec
     volumes:
       - .:/app    # プロジェクト全体をマウント
+      - /app/typespec/node_modules  # node_modules用匿名ボリューム
     working_dir: /app/typespec
     command: /bin/sh -c "while :; do sleep 10; done"
     networks:

@@ -1,21 +1,29 @@
 {
-  "name": "@typespec-test/typespec",
+  "name": "@typespec-test/workspace",
   "version": "1.0.0",
-  "description": "TypeSpec API定義と生成",
+  "description": "TypeSpec API定義と生成 - Workspace Root",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "typespec:compile": "tsp compile tsp/main.tsp --output-dir ../output/openapi",
-    "typespec:compile-user": "tsp compile tsp/user-api.tsp --output-dir ../output/openapi --output-file user-api.yaml",
-    "typespec:compile-product": "tsp compile tsp/product-api.tsp --output-dir ../output/openapi --output-file product-api.yaml",
-    "typespec:compile-auth": "tsp compile tsp/auth-api.tsp --output-dir ../output/openapi --output-file auth-api.yaml",
-    "typespec:compile-separate": "for file in tsp/apis/*.tsp; do api=$(basename \"$file\" .tsp); echo \"Compiling $api...\"; mkdir -p ../output/openapi/$api; tsp compile \"$file\" --output-dir ../output/openapi/$api; mv ../output/openapi/$api/openapi.yaml ../output/openapi/${api}.yaml; rmdir ../output/openapi/$api 2>/dev/null || true; done",
-    "typespec:compile-all": "npm run typespec:compile && npm run typespec:compile-separate"
+    "build:decorators": "npm run build --workspace=@typespec-test/decorators",
+    "build:enums": "npm run build --workspace=@typespec-test/enums",
+    "build:all": "npm run build:decorators && npm run build:enums",
+    "typespec:compile-user": "npm run compile --workspace=@typespec-test/user-api",
+    "typespec:compile-product": "npm run compile --workspace=@typespec-test/product-api",
+    "typespec:compile-auth": "npm run compile --workspace=@typespec-test/auth-api",
+    "typespec:compile-all-apis": "npm run typespec:compile-user && npm run typespec:compile-product && npm run typespec:compile-auth",
+    "typespec:compile-all": "npm run build:all && npm run typespec:compile-all-apis"
   },
   "devDependencies": {
     "@typespec/compiler": "^0.66.0",
     "@typespec/http": "^0.66.0",
     "@typespec/rest": "^0.66.0",
     "@typespec/openapi3": "^0.66.0",
+    "@typespec/openapi": "^0.66.0",
     "@typespec/versioning": "^0.66.0",
+    "typescript": "~5.0.0",
     "js-yaml": "^4.1.0"
   },
   "author": "",

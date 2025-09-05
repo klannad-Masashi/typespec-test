@@ -1,0 +1,14 @@
+{
+  "name": "@typespec-test/common",
+  "version": "1.0.0",
+  "description": "TypeSpec共通型定義",
+  "type": "module",
+  "main": "./base-types.tsp",
+  "typespec": {
+    "main": "./base-types.tsp"
+  },
+  "scripts": {
+    "build": "echo 'No build needed for type definitions'",
+    "clean": "echo 'No clean needed for type definitions'"
+  }
+}

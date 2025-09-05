@@ -62,3 +62,4 @@ database/ddl/*_[0-9]*.sql
 
 # アウトプット
 output/
+dist/

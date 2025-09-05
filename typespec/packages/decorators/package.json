@@ -1,0 +1,19 @@
+{
+  "name": "@typespec-test/decorators",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/lib.js",
+  "types": "./dist/lib.d.ts",
+  "typespec": {
+    "main": "./lib.tsp"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@typespec/compiler": "^0.66.0",
+    "@typespec/openapi": "^0.66.0",
+    "typescript": "~5.0.0"
+  }
+}
