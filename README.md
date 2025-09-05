@@ -50,16 +50,26 @@ TypeSpecを真の情報源とする、マルチAPI対応フルスタックWeb開
 typespec-test/
 ├── typespec/              # TypeSpec関連
 │   ├── Dockerfile        # TypeSpec開発環境用イメージ
-│   ├── package.json      # TypeSpec依存関係（マルチAPI対応）
-│   ├── tspconfig.yaml    # TypeSpecコンパイル設定
-│   └── tsp/              # TypeSpec定義ファイル
-│       ├── main.tsp      # インポートハブ（全APIを統合）
-│       ├── common/       # 共通型定義
-│       │   └── base-types.tsp
-│       └── apis/         # API別定義ファイル
-│           ├── user-api.tsp
-│           ├── product-api.tsp
-│           └── auth-api.tsp
+│   ├── package.json      # TypeSpec依存関係（Workspace Root）
+│   ├── packages/         # TypeSpec Workspaceパッケージ
+│   │   ├── models/       # 📦 モデル定義パッケージ
+│   │   │   ├── user-models.tsp
+│   │   │   ├── product-models.tsp
+│   │   │   ├── auth-models.tsp
+│   │   │   └── lib.tsp
+│   │   ├── common/       # 📦 共通型定義
+│   │   │   └── base-types.tsp
+│   │   ├── decorators/   # 📦 カスタムデコレーター
+│   │   │   ├── lib.tsp
+│   │   │   └── lib.ts
+│   │   ├── enums/        # 📦 列挙型定義
+│   │   │   └── lib.tsp
+│   │   ├── user-api/     # 🚀 ユーザーAPI（エンドポイントのみ）
+│   │   │   └── user-api.tsp
+│   │   ├── product-api/  # 🚀 商品API（エンドポイントのみ）
+│   │   │   └── product-api.tsp
+│   │   └── auth-api/     # 🚀 認証API（エンドポイントのみ）
+│   │       └── auth-api.tsp
 ├── generator/             # Python生成ツール（マルチAPI対応）
 │   ├── Dockerfile        # Python生成環境用イメージ
 │   ├── requirements.txt  # Python依存関係
@@ -94,6 +104,204 @@ typespec-test/
 │   └── generator_config.yaml # ジェネレーター設定ファイル
 └── docker-compose.yml     # Docker環境設定
 ```
+
+## TypeSpec Workspace - 使い方ガイド
+
+### アーキテクチャ概要
+
+このプロジェクトは**モデル分離アーキテクチャ**を採用しています：
+
+- **📦 Modelsパッケージ**: 全APIで共有するデータモデル定義
+- **🚀 APIパッケージ**: エンドポイント定義のみに特化
+- **🔧 共通パッケージ**: 型定義、デコレーター、列挙型
+
+### 基本的な使い方
+
+#### 1. 環境起動
+```bash
+# Docker環境を起動
+docker compose up -d
+
+# TypeSpecコンテナに接続
+docker compose exec typespec /bin/sh
+```
+
+#### 2. 全体ビルド
+```bash
+# デコレーターとenumをビルド（初回必須）
+npm run build:all
+
+# 全APIを一括コンパイル
+npm run typespec:compile-all
+```
+
+#### 3. 個別APIのコンパイル
+```bash
+# 個別コンパイル（デコレーター未変更の場合）
+npm run typespec:compile-user      # ユーザーAPI
+npm run typespec:compile-product   # 商品API
+npm run typespec:compile-auth      # 認証API
+```
+
+### 開発ワークフロー
+
+#### モデルを修正する場合
+
+1. **対象ファイルを編集**:
+   ```bash
+   vi packages/models/user-models.tsp    # ユーザー関連モデル
+   vi packages/models/product-models.tsp # 商品関連モデル
+   vi packages/models/auth-models.tsp    # 認証関連モデル
+   ```
+
+2. **影響する全APIを再コンパイル**:
+   ```bash
+   # 例：ユーザーモデルを変更した場合
+   npm run typespec:compile-user
+   
+   # または全体を再コンパイル
+   npm run typespec:compile-all
+   ```
+
+#### 新しいエンドポイントを追加する場合
+
+1. **APIファイルを編集**:
+   ```bash
+   vi packages/user-api/user-api.tsp     # ユーザーAPI
+   vi packages/product-api/product-api.tsp # 商品API
+   vi packages/auth-api/auth-api.tsp      # 認証API
+   ```
+
+2. **該当APIを再コンパイル**:
+   ```bash
+   npm run typespec:compile-user  # 編集したAPIのみ
+   ```
+
+#### 新しいモデルを追加する場合
+
+1. **適切なモデルファイルに追加**:
+   ```typescript
+   // packages/models/user-models.tsp の例
+   @doc("新しいユーザー関連モデル")
+   model NewUserModel {
+     @key
+     id: int32;
+     
+     @doc("説明")
+     description: string;
+   }
+   ```
+
+2. **APIファイルでモデルを使用**:
+   ```typescript
+   // packages/user-api/user-api.tsp の例
+   @doc("新エンドポイント")
+   @get
+   op getNewUserData(): NewUserModel | ErrorResponse;
+   ```
+
+3. **再コンパイル**:
+   ```bash
+   npm run typespec:compile-user
+   ```
+
+### カスタムデコレーター（DDL生成用）の使い方
+
+#### 基本的なDDLデコレーター
+```typescript
+// packages/models/user-models.tsp の例
+@doc("ユーザー情報")
+@MyService.DDL.makeDDL                    // DDL生成対象
+@MyService.DDL.tableName("app_users")     // テーブル名指定
+model User {
+  @key
+  id: int32;
+
+  @MyService.DDL.length(50)               // 文字列長制約
+  username: string;
+
+  @MyService.DDL.notAddForDDL             // DDL生成から除外
+  internalField?: string;
+  
+  ...TimestampFields;                     // 共通のタイムスタンプ
+}
+```
+
+#### 利用可能なデコレーター
+- `@MyService.DDL.makeDDL` - DDL生成対象としてマーク
+- `@MyService.DDL.tableName("table_name")` - テーブル名指定
+- `@MyService.DDL.length(50)` - 文字列長制約
+- `@MyService.DDL.notAddForDDL` - DDL生成から除外
+- `@MyService.DDL.checkIn(["value1", "value2"])` - CHECK制約
+
+### ビルド要件について
+
+**重要**: `npm run build:all`の実行タイミング
+
+```bash
+# ✅ 効率的な実行方法
+npm run typespec:compile-all  # build:all → 全API（推奨）
+
+# ✅ デコレーター変更後の個別実行
+npm run build:decorators && npm run typespec:compile-user
+
+# ❌ 非効率な実行（decoratorsが重複ビルドされる）
+npm run typespec:compile-user   # build実行
+npm run typespec:compile-product # build実行（重複）
+npm run typespec:compile-auth    # build実行（重複）
+```
+
+### 生成されるファイル
+
+#### OpenAPI仕様書
+```bash
+ls output/openapi/
+# user-api.yaml     - ユーザー管理API仕様書
+# product-api.yaml  - 商品管理API仕様書  
+# auth-api.yaml     - 認証API仕様書
+```
+
+#### 名前空間による参照
+生成されたOpenAPI仕様書では、モデルは名前空間付きで参照されます：
+- `UserModels.User`
+- `UserModels.CreateUserRequest`
+- `ProductModels.Product`
+- `AuthModels.LoginRequest`
+
+### トラブルシューティング
+
+#### コンパイルエラーが発生した場合
+```bash
+# 1. 依存関係をビルド
+npm run build:all
+
+# 2. 個別にコンパイルしてエラーを特定
+npm run typespec:compile-user
+npm run typespec:compile-product
+npm run typespec:compile-auth
+```
+
+#### モデルが見つからない場合
+- `packages/models/lib.tsp`に適切にimportされているか確認
+- APIファイルで`import "@typespec-test/models"`されているか確認
+- `using UserModels;`（または適切な名前空間）が宣言されているか確認
+
+#### 生成ファイルのクリーンアップ
+```bash
+# 生成されたファイルを削除
+rm -rf output/openapi/*
+
+# 再生成
+npm run typespec:compile-all
+```
+
+### 拡張方法
+
+#### 新しいAPIパッケージを追加
+1. `packages/new-api/`ディレクトリ作成
+2. `package.json`と`new-api.tsp`作成
+3. ルートの`package.json`にコンパイルスクリプト追加
+4. 必要に応じて`packages/models/`に新しいモデルファイル追加
 
 ## 開発環境の起動
 
