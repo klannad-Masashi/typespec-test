@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "ユーザー管理API",
   "scripts": {
-    "compile": "mkdir -p /app/output/openapi/user-api && tsp compile user-api.tsp --output-dir /app/output/openapi/user-api && mv /app/output/openapi/user-api/@typespec/openapi3/openapi.yaml /app/output/openapi/user-api.yaml && rm -rf /app/output/openapi/user-api/@typespec 2>/dev/null || true"
+    "compile": "mkdir -p /app/output/openapi/user-api && tsp compile user-api.tsp --output-dir /app/output/openapi/user-api && mv /app/output/openapi/user-api/@typespec/openapi3/openapi.yaml /app/output/openapi/user-api.yaml && rm -rf /app/output/openapi/user-api 2>/dev/null || true"
   },
   "dependencies": {
     "@typespec-test/common": "*",

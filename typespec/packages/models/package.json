@@ -1,0 +1,14 @@
+{
+  "name": "@typespec-test/models",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "lib.tsp",
+  "dependencies": {
+    "@typespec/compiler": "^0.66.0",
+    "@typespec/http": "^0.66.0",
+    "@typespec/openapi3": "^0.66.0",
+    "@typespec-test/common": "*",
+    "@typespec-test/decorators": "*",
+    "@typespec-test/enums": "*"
+  }
+}

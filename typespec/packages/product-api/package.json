@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "商品管理API",
   "scripts": {
-    "compile": "mkdir -p /app/output/openapi/product-api && tsp compile product-api.tsp --output-dir /app/output/openapi/product-api && mv /app/output/openapi/product-api/@typespec/openapi3/openapi.yaml /app/output/openapi/product-api.yaml && rm -rf /app/output/openapi/product-api/@typespec 2>/dev/null || true"
+    "compile": "mkdir -p /app/output/openapi/product-api && tsp compile product-api.tsp --output-dir /app/output/openapi/product-api && mv /app/output/openapi/product-api/@typespec/openapi3/openapi.yaml /app/output/openapi/product-api.yaml && rm -rf /app/output/openapi/product-api 2>/dev/null || true"
   },
   "dependencies": {
     "@typespec-test/common": "*"

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "認証API",
   "scripts": {
-    "compile": "mkdir -p /app/output/openapi/auth-api && tsp compile auth-api.tsp --output-dir /app/output/openapi/auth-api && mv /app/output/openapi/auth-api/@typespec/openapi3/openapi.yaml /app/output/openapi/auth-api.yaml && rm -rf /app/output/openapi/auth-api/@typespec 2>/dev/null || true"
+    "compile": "mkdir -p /app/output/openapi/auth-api && tsp compile auth-api.tsp --output-dir /app/output/openapi/auth-api && mv /app/output/openapi/auth-api/@typespec/openapi3/openapi.yaml /app/output/openapi/auth-api.yaml && rm -rf /app/output/openapi/auth-api 2>/dev/null || true"
   },
   "dependencies": {
     "@typespec-test/common": "*"
