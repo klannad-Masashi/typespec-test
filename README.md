@@ -32,18 +32,6 @@ TypeSpecを真の情報源とする、マルチAPI対応フルスタックWeb開
 - **生成ツール**: Python 3.12.3
 - **開発環境**: Docker Compose
 
-## 開発環境
-
-### Docker環境での開発
-
-このプロジェクトは、すべての開発作業をDockerコンテナ上で実施することを前提としています。
-
-- TypeSpec定義の編集・コンパイル
-- 各レイヤーのコード生成
-- ビルドとテストの実行
-
-すべての作業はdocker-compose.ymlで定義された環境内で行います。
-
 ## プロジェクト構造
 
 ```
@@ -105,6 +93,30 @@ typespec-test/
 └── docker-compose.yml     # Docker環境設定
 ```
 
+## 開発環境の起動
+
+このプロジェクトは、すべての開発作業をDockerコンテナ上で実施することを前提としています。
+
+### 1. Docker環境の起動
+
+```bash
+# Docker Composeでコンテナを起動
+docker compose up -d
+
+# TypeSpec開発コンテナに接続
+docker compose exec typespec /bin/sh
+```
+
+### 2. TypeSpec依存関係の初期化
+
+```bash
+# デコレーターとenumをビルド（初回必須）
+docker compose exec typespec npm run build:all
+
+# 全APIを一括コンパイル
+docker compose exec typespec npm run typespec:compile-all
+```
+
 ## TypeSpec Workspace - 使い方ガイド
 
 ### アーキテクチャ概要
@@ -115,99 +127,45 @@ typespec-test/
 - **🚀 APIパッケージ**: エンドポイント定義のみに特化
 - **🔧 共通パッケージ**: 型定義、デコレーター、列挙型
 
-### 基本的な使い方
+### 開発ワークフロー
 
-#### 1. 環境起動
+#### 1. モデルを修正する場合
+
 ```bash
-# Docker環境を起動
-docker compose up -d
+# 対象ファイルを編集
+docker compose exec typespec vi packages/models/user-models.tsp    # ユーザー関連モデル
+docker compose exec typespec vi packages/models/product-models.tsp # 商品関連モデル
+docker compose exec typespec vi packages/models/auth-models.tsp    # 認証関連モデル
 
-# TypeSpecコンテナに接続
-docker compose exec typespec /bin/sh
+# 影響する全APIを再コンパイル
+docker compose exec typespec npm run typespec:compile-all
 ```
 
-#### 2. 全体ビルド
-```bash
-# デコレーターとenumをビルド（初回必須）
-npm run build:all
+#### 2. 新しいエンドポイントを追加する場合
 
-# 全APIを一括コンパイル
-npm run typespec:compile-all
+```bash
+# APIファイルを編集
+docker compose exec typespec vi packages/user-api/user-api.tsp     # ユーザーAPI
+docker compose exec typespec vi packages/product-api/product-api.tsp # 商品API
+docker compose exec typespec vi packages/auth-api/auth-api.tsp      # 認証API
+
+# 該当APIを再コンパイル
+docker compose exec typespec npm run typespec:compile-user  # 編集したAPIのみ
 ```
 
 #### 3. 個別APIのコンパイル
+
 ```bash
 # 個別コンパイル（デコレーター未変更の場合）
-npm run typespec:compile-user      # ユーザーAPI
-npm run typespec:compile-product   # 商品API
-npm run typespec:compile-auth      # 認証API
+docker compose exec typespec npm run typespec:compile-user      # ユーザーAPI
+docker compose exec typespec npm run typespec:compile-product   # 商品API
+docker compose exec typespec npm run typespec:compile-auth      # 認証API
 ```
-
-### 開発ワークフロー
-
-#### モデルを修正する場合
-
-1. **対象ファイルを編集**:
-   ```bash
-   vi packages/models/user-models.tsp    # ユーザー関連モデル
-   vi packages/models/product-models.tsp # 商品関連モデル
-   vi packages/models/auth-models.tsp    # 認証関連モデル
-   ```
-
-2. **影響する全APIを再コンパイル**:
-   ```bash
-   # 例：ユーザーモデルを変更した場合
-   npm run typespec:compile-user
-   
-   # または全体を再コンパイル
-   npm run typespec:compile-all
-   ```
-
-#### 新しいエンドポイントを追加する場合
-
-1. **APIファイルを編集**:
-   ```bash
-   vi packages/user-api/user-api.tsp     # ユーザーAPI
-   vi packages/product-api/product-api.tsp # 商品API
-   vi packages/auth-api/auth-api.tsp      # 認証API
-   ```
-
-2. **該当APIを再コンパイル**:
-   ```bash
-   npm run typespec:compile-user  # 編集したAPIのみ
-   ```
-
-#### 新しいモデルを追加する場合
-
-1. **適切なモデルファイルに追加**:
-   ```typescript
-   // packages/models/user-models.tsp の例
-   @doc("新しいユーザー関連モデル")
-   model NewUserModel {
-     @key
-     id: int32;
-     
-     @doc("説明")
-     description: string;
-   }
-   ```
-
-2. **APIファイルでモデルを使用**:
-   ```typescript
-   // packages/user-api/user-api.tsp の例
-   @doc("新エンドポイント")
-   @get
-   op getNewUserData(): NewUserModel | ErrorResponse;
-   ```
-
-3. **再コンパイル**:
-   ```bash
-   npm run typespec:compile-user
-   ```
 
 ### カスタムデコレーター（DDL生成用）の使い方
 
 #### 基本的なDDLデコレーター
+
 ```typescript
 // packages/models/user-models.tsp の例
 @doc("ユーザー情報")
@@ -228,196 +186,31 @@ model User {
 ```
 
 #### 利用可能なデコレーター
+
 - `@MyService.DDL.makeDDL` - DDL生成対象としてマーク
 - `@MyService.DDL.tableName("table_name")` - テーブル名指定
 - `@MyService.DDL.length(50)` - 文字列長制約
 - `@MyService.DDL.notAddForDDL` - DDL生成から除外
 - `@MyService.DDL.checkIn(["value1", "value2"])` - CHECK制約
 
-### ビルド要件について
+## コード生成の実行
 
-**重要**: `npm run build:all`の実行タイミング
-
-```bash
-# ✅ 効率的な実行方法
-npm run typespec:compile-all  # build:all → 全API（推奨）
-
-# ✅ デコレーター変更後の個別実行
-npm run build:decorators && npm run typespec:compile-user
-
-# ❌ 非効率な実行（decoratorsが重複ビルドされる）
-npm run typespec:compile-user   # build実行
-npm run typespec:compile-product # build実行（重複）
-npm run typespec:compile-auth    # build実行（重複）
-```
-
-### 生成されるファイル
-
-#### OpenAPI仕様書
-```bash
-ls output/openapi/
-# user-api.yaml     - ユーザー管理API仕様書
-# product-api.yaml  - 商品管理API仕様書  
-# auth-api.yaml     - 認証API仕様書
-```
-
-#### 名前空間による参照
-生成されたOpenAPI仕様書では、モデルは名前空間付きで参照されます：
-- `UserModels.User`
-- `UserModels.CreateUserRequest`
-- `ProductModels.Product`
-- `AuthModels.LoginRequest`
-
-### トラブルシューティング
-
-#### コンパイルエラーが発生した場合
-```bash
-# 1. 依存関係をビルド
-npm run build:all
-
-# 2. 個別にコンパイルしてエラーを特定
-npm run typespec:compile-user
-npm run typespec:compile-product
-npm run typespec:compile-auth
-```
-
-#### モデルが見つからない場合
-- `packages/models/lib.tsp`に適切にimportされているか確認
-- APIファイルで`import "@typespec-test/models"`されているか確認
-- `using UserModels;`（または適切な名前空間）が宣言されているか確認
-
-#### 生成ファイルのクリーンアップ
-```bash
-# 生成されたファイルを削除
-rm -rf output/openapi/*
-
-# 再生成
-npm run typespec:compile-all
-```
-
-### 拡張方法
-
-#### 新しいAPIパッケージを追加
-1. `packages/new-api/`ディレクトリ作成
-2. `package.json`と`new-api.tsp`作成
-3. ルートの`package.json`にコンパイルスクリプト追加
-4. 必要に応じて`packages/models/`に新しいモデルファイル追加
-
-## 開発環境の起動
-
-### 1. Docker環境の起動
-
-```bash
-# Docker Composeでコンテナを起動
-docker compose up -d
-
-# TypeSpec開発コンテナに接続
-docker compose exec typespec /bin/sh
-```
-
-### 2. Python環境の準備
-
-```bash
-# Python 3.12.3依存関係のインストール（generatorコンテナ内で自動実行）
-# 手動で実行する場合：
-docker compose exec generator pip install -r generator/requirements.txt
-```
-
-### 3. TypeSpecからのコード生成
-
-#### 🆕 マルチAPIモード（推奨）
+### マルチAPI対応の生成フロー
 
 ```bash
 # 1. 各API別にTypeSpecコンパイル（個別OpenAPI仕様書生成）
-docker compose exec typespec npm run typespec:compile-separate
+docker compose exec typespec npm run typespec:compile-all
 
 # 2. マルチAPIから全てのコンポーネントを生成
 docker compose exec generator python generator/main.py --target all --input output/openapi
 
-# 個別生成も可能
+# または個別生成
 docker compose exec generator python generator/main.py --target csv --input output/openapi
 docker compose exec generator python generator/main.py --target spring --input output/openapi
 docker compose exec generator python generator/main.py --target angular --input output/openapi
 ```
 
-#### 📋 レガシーモード（単一API）
-
-```bash
-# 1. 統合TypeSpecコンパイル（単一OpenAPI仕様書生成）
-docker compose exec typespec npm run typespec:compile
-
-# 2. レガシーモードでコンポーネント生成
-docker compose exec generator python generator/main.py --target all --legacy-mode
-```
-
-### 4. 生成されたファイルの確認
-
-```bash
-# 全ての出力ファイル
-ls -la output/
-
-# マルチAPI対応：各API別OpenAPI仕様書
-ls -la output/openapi/
-# → user-api.yaml, product-api.yaml, auth-api.yaml
-
-# CSVファイル（API統合テーブル定義）
-ls -la output/csv/
-# → API名付きテーブル定義CSV
-
-# Spring Bootファイル（API別パッケージ）
-find output/backend -name "*.java"
-# → userapi/, productapi/, authapi/ 別パッケージ
-
-# Angularファイル（API別モジュール）
-find output/frontend -name "*.ts"
-# → user/, product/, auth/ 別モジュール
-```
-
-## 🔧 使い方
-
-### 1. マルチAPI TypeSpec定義の作成・編集
-
-各APIを独立したファイルで定義します：
-
-```bash
-# TypeSpec専用コンテナに接続
-docker compose exec typespec /bin/sh
-
-# API別TypeSpecファイルを編集
-vi typespec/tsp/apis/user-api.tsp      # ユーザー管理API
-vi typespec/tsp/apis/product-api.tsp   # 商品管理API  
-vi typespec/tsp/apis/auth-api.tsp      # 認証API
-
-# 共通型定義を編集
-vi typespec/tsp/common/base-types.tsp  # エラー型、ページネーション等
-```
-
-### 2. TypeSpecのコンパイル
-
-#### マルチAPIコンパイル（推奨）
-
-```bash
-# 各API別に個別コンパイル
-docker compose exec typespec npm run typespec:compile-separate
-```
-
-#### 統合コンパイル（従来方式）
-
-```bash
-# 全API統合で単一OpenAPI仕様書生成
-docker compose exec typespec npm run typespec:compile
-```
-
-### 3. コード生成の実行
-
-#### 3.1 マルチAPI 全コンポーネントの一括生成（推奨）
-
-```bash
-# マルチAPIモードで全コンポーネント生成
-docker compose exec generator python generator/main.py --target all --input output/openapi
-```
-
-#### 3.2 マルチAPI 段階的生成
+### 段階的生成
 
 ```bash
 # 1. CSV生成（API統合テーブル定義）
@@ -436,100 +229,39 @@ docker compose exec generator python generator/main.py --target spring --input o
 docker compose exec generator python generator/main.py --target angular --input output/openapi
 ```
 
-#### 3.3 レガシーモード生成
+### レガシーモード生成
 
 ```bash
-# 従来の単一API生成
+# 統合TypeSpecコンパイル（単一OpenAPI仕様書生成）
+docker compose exec typespec npm run typespec:compile
+
+# レガシーモードでコンポーネント生成
 docker compose exec generator python generator/main.py --target all --legacy-mode
-
-# または個別指定
-docker compose exec generator python generator/main.py --target spring --input output/openapi/openapi.yaml
 ```
 
-### 4. 生成フローの詳細
+## 生成されるファイル
 
-#### 🆕 マルチAPI生成フロー（推奨）
-
-```
-TypeSpec定義 (.tsp)
-├── apis/user-api.tsp
-├── apis/product-api.tsp  
-└── apis/auth-api.tsp
-    ↓
-TypeSpecコンパイル（各API別）
-    ↓
-OpenAPI仕様 (API別)
-├── output/openapi/user-api.yaml
-├── output/openapi/product-api.yaml
-└── output/openapi/auth-api.yaml
-    ↓
-マルチAPI対応生成（generatorコンテナ）
-    ↓
-├── CSV生成 (API統合テーブル定義)
-├── DDL生成 (output/ddl/[テーブル名].sql)  
-├── Spring Boot生成 (API別パッケージ)
-│   ├── userapi/
-│   ├── productapi/
-│   └── authapi/
-└── Angular生成 (API別モジュール)
-    ├── user/
-    ├── product/
-    └── auth/
-```
-
-#### 📋 レガシー生成フロー
-
-```
-TypeSpec定義 (main.tsp) → OpenAPI仕様 (単一) → 各種コード生成
-```
-
-### コンテナ構成
-- **typespecコンテナ**: TypeSpec → OpenAPI変換専用（Node.js 24-slim環境）
-- **generatorコンテナ**: OpenAPI → 各種コード生成専用（Python 3.12.3-slim環境）
-- **postgresコンテナ**: データベース環境（PostgreSQL 15-alpine）
-
-### 5. 生成されるファイル
-
-#### 🆕 マルチAPI対応の生成ファイル
-
-#### OpenAPI仕様書（API別）
-- **場所**: 
-  - `output/openapi/user-api.yaml`
-  - `output/openapi/product-api.yaml` 
-  - `output/openapi/auth-api.yaml`
+### OpenAPI仕様書（API別）
+- **場所**: `output/openapi/user-api.yaml`, `output/openapi/product-api.yaml`, `output/openapi/auth-api.yaml`
 - **内容**: 各APIに特化したOpenAPI 3.0仕様書
 
-#### Spring Bootファイル（API別パッケージ）
-- **場所**: 
-  - `output/backend/main/java/com/example/user/userapi/`
-  - `output/backend/main/java/com/example/user/productapi/`
-  - `output/backend/main/java/com/example/user/authapi/`
+### Spring Bootファイル（API別パッケージ）
+- **場所**: `output/backend/main/java/com/example/user/{userapi,productapi,authapi}/`
 - **内容**: API別Controller、DTO（バリデーション付き）
 
-#### Angularファイル（API別モジュール）
-- **場所**:
-  - `output/frontend/app/user/` (models/, services/)
-  - `output/frontend/app/product/` (models/, services/)
-  - `output/frontend/app/auth/` (models/, services/)
+### Angularファイル（API別モジュール）
+- **場所**: `output/frontend/app/{user,product,auth}/` (models/, services/)
 - **内容**: API別TypeScript型定義、HTTPサービス
 
-#### CSVファイル（API統合テーブル定義）
+### CSVファイル（API統合テーブル定義）
 - **場所**: `output/csv/table_definitions.csv`
 - **内容**: API名列付きテーブル定義（例：`user,users,id,SERIAL PRIMARY KEY...`）
 
-#### DDLファイル
+### DDLファイル
 - **場所**: `output/ddl/[テーブル名].sql`
 - **内容**: PostgreSQL DDL、インデックス、トリガー、サンプルデータ
 
-#### 📊 生成統計例
-- **User API**: 7モデル, 5エンドポイント
-- **Product API**: 10モデル, 7エンドポイント
-- **Auth API**: 16モデル, 8エンドポイント
-- **データベース**: 3テーブル（users, products, authusers）
-
-### 6. 設定のカスタマイズ
-
-#### 🆕 マルチAPI対応設定
+## 設定のカスタマイズ
 
 生成動作は`config/generator_config.yaml`で設定できます：
 
@@ -550,7 +282,7 @@ angular:
   models_dir: app/models
   services_dir: app/services
 
-# 🆕 API別設定（マルチAPI対応）
+# API別設定（マルチAPI対応）
 apis:
   user:
     input_file: user-api.yaml
@@ -586,32 +318,26 @@ database:
   insert_sample_data: true
 ```
 
-### 7. トラブルシューティング
+## トラブルシューティング
 
-#### TypeSpecコンパイルエラー
+### TypeSpecコンパイルエラー
 
 ```bash
 # マルチAPI構文エラーを確認
-docker compose exec typespec npm run typespec:compile-separate
+docker compose exec typespec npm run typespec:compile-all
 
 # 個別APIのコンパイルエラー確認
 docker compose exec typespec npm run typespec:compile-user
 docker compose exec typespec npm run typespec:compile-product  
 docker compose exec typespec npm run typespec:compile-auth
-
-# 統合コンパイルエラー確認
-docker compose exec typespec npm run typespec:compile
 ```
 
-#### 生成ファイルが見つからない
+### 生成ファイルが見つからない
 
 ```bash
 # マルチAPI：各OpenAPI仕様ファイルの存在確認
 ls -la output/openapi/
 # → user-api.yaml, product-api.yaml, auth-api.yaml があるか確認
-
-# レガシー：単一OpenAPI仕様ファイルの存在確認  
-ls -la output/openapi/openapi.yaml
 
 # コンテナ状態を確認
 docker compose ps
@@ -620,7 +346,7 @@ docker compose ps
 ls -la output/
 ```
 
-#### マルチAPI生成エラー
+### マルチAPI生成エラー
 
 ```bash
 # マルチAPI生成でエラーが発生した場合
@@ -630,17 +356,23 @@ docker compose exec generator python generator/main.py --target csv --input outp
 docker compose exec generator python generator/main.py --target spring --input output/openapi/user-api.yaml
 ```
 
-#### パッケージ・モジュール構造の問題
+### モデルが見つからない場合
 
-マルチAPI生成では、各APIが独立したパッケージ・モジュールに生成されます：
-- **Spring Boot**: `com.example.user.userapi`, `com.example.user.productapi`など
-- **Angular**: `app/user/`, `app/product/`など
+- `packages/models/lib.tsp`に適切にimportされているか確認
+- APIファイルで`import "@typespec-test/models"`されているか確認
+- `using UserModels;`（または適切な名前空間）が宣言されているか確認
 
-想定と異なる構造の場合は、設定ファイル（`config/generator_config.yaml`）の`apis`セクションを確認してください。
+### 生成ファイルのクリーンアップ
+
+```bash
+# 生成されたファイルを削除
+rm -rf output/openapi/*
+
+# 再生成
+docker compose exec typespec npm run typespec:compile-all
+```
 
 ## 🗑️ 成果物の削除
-
-マルチAPI対応後の生成ファイルを削除するためのクリーンアップコマンドです。
 
 ### 一括削除
 
@@ -678,24 +410,6 @@ rm -f output/openapi/user-api.yaml
 rm -rf output/backend/main/java/com/example/user/userapi
 rm -rf output/frontend/app/user
 ```
-
-### 段階的削除（バックアップ保持）
-
-```bash
-# バックアップファイルを保持してメインファイルのみ削除
-find output/ -name "*_[0-9]*" -prune -o -type f -delete
-```
-
-### 注意事項
-
-- 削除コマンドは**output/ディレクトリ内の生成ファイルのみ**を対象とします
-- ソースファイル（TypeSpec定義、設定ファイル、テンプレートなど）は削除されません
-- マルチAPI対応により、API別に生成されたファイルが複数ディレクトリに分散しています
-- 削除前に重要なカスタマイズが含まれていないか確認してください
-- 生成ファイルは`.gitignore`により除外されているため、通常は削除後に再生成できます
-- バックアップファイル（タイムスタンプ付き）は自動生成されるため、履歴確認に使用できます
-
----
 
 ## 🎯 まとめ
 
