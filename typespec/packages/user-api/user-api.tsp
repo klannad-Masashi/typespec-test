@@ -10,8 +10,8 @@ import "@typespec-gen/models";
 using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.Versioning;
-using MyService.DDL;
-using MyService.Enums;
+using TypeSpecGen.DDL;
+using TypeSpecGen.Enums;
 using UserModels;
 
 @service({

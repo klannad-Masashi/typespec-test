@@ -2,7 +2,7 @@
 // デコレーターの「宣言」ファイル。
 // ここでは型や対象を定義するだけで、実装は lib.ts 側にある。
 
-namespace MyService.DDL;
+namespace TypeSpecGen.DDL;
 
 // ===== モデル（テーブル）向け =====
 extern dec makeDDL(target: Model);

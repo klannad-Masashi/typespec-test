@@ -2,40 +2,13 @@ import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
 import "@typespec-gen/common";
+import "@typespec-gen/enums";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
+using TypeSpecGen.Enums;
 
 namespace AuthModels;
-
-// ユーザーロール
-@doc("ユーザーロール")
-enum UserRole {
-  @doc("管理者")
-  Admin: "admin",
-  
-  @doc("一般ユーザー")
-  User: "user",
-  
-  @doc("ゲスト")
-  Guest: "guest"
-}
-
-// ログイン試行結果
-@doc("ログイン試行結果")
-enum LoginResult {
-  @doc("成功")
-  Success: "success",
-  
-  @doc("認証情報が無効")
-  InvalidCredentials: "invalid_credentials",
-  
-  @doc("アカウントがロック済み")
-  AccountLocked: "account_locked",
-  
-  @doc("アカウントが非アクティブ")
-  AccountInactive: "account_inactive"
-}
 
 // 認証ユーザー情報
 @doc("認証ユーザー情報")

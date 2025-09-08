@@ -4,11 +4,13 @@ import "@typespec/openapi3";
 import "@typespec/versioning";
 import "@typespec-gen/common";
 import "@typespec-gen/models";
+import "@typespec-gen/enums";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.Versioning;
 using ProductModels;
+using TypeSpecGen.Enums;
 
 @service({
   title: "Product Management API",

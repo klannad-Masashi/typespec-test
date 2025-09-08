@@ -6,14 +6,14 @@ import "@typespec-gen/decorators";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
-using MyService.DDL;
+using TypeSpecGen.DDL;
 
 namespace UserModels;
 
 // ユーザーモデル定義
 @doc("ユーザー情報")
-@MyService.DDL.makeDDL
-@MyService.DDL.tableName("app_users")
+@TypeSpecGen.DDL.makeDDL
+@TypeSpecGen.DDL.tableName("app_users")
 model User {
   @doc("ユーザーID（自動生成）")
   @key
@@ -22,7 +22,7 @@ model User {
   @doc("ユーザー名")
   @minLength(1)
   @maxLength(50)
-  @MyService.DDL.length(50)
+  @TypeSpecGen.DDL.length(50)
   username: string;
 
   @doc("メールアドレス")
@@ -31,14 +31,14 @@ model User {
 
   @doc("フルネーム")
   @maxLength(100)
-  @MyService.DDL.length(100)
+  @TypeSpecGen.DDL.length(100)
   fullName: string;
 
   @doc("アクティブフラグ")
   isActive: boolean = true;
 
   @doc("内部フィールド（DDL生成除外）")
-  @MyService.DDL.notAddForDDL
+  @TypeSpecGen.DDL.notAddForDDL
   internalField?: string;
 
   // 共通のタイムスタンプを継承

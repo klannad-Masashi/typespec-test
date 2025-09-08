@@ -3,44 +3,14 @@ import "@typespec/rest";
 import "@typespec/openapi3";
 import "@typespec-gen/common";
 import "@typespec-gen/decorators";
+import "@typespec-gen/enums";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
-using MyService.DDL;
+using TypeSpecGen.DDL;
+using TypeSpecGen.Enums;
 
 namespace ProductModels;
-
-// 商品カテゴリ列挙型
-@doc("商品カテゴリ")
-enum ProductCategory {
-  @doc("家電")
-  Electronics: "electronics",
-  
-  @doc("衣服")
-  Clothing: "clothing",
-  
-  @doc("書籍")
-  Books: "books",
-  
-  @doc("スポーツ")
-  Sports: "sports",
-  
-  @doc("その他")
-  Other: "other"
-}
-
-// 商品ステータス
-@doc("商品ステータス")
-enum ProductStatus {
-  @doc("利用可能")
-  Available: "available",
-  
-  @doc("在庫切れ")
-  OutOfStock: "out_of_stock",
-  
-  @doc("生産中止")
-  Discontinued: "discontinued"
-}
 
 // 商品モデル定義
 @doc("商品情報")

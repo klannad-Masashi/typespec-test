@@ -71,7 +71,7 @@ export function $precisionScale(
 
 // IDE 用（任意）
 export const $decorators = {
-  "MyService.DDL": {
+  "TypeSpecGen.DDL": {
     makeDDL: $makeDDL,
     tableName: $tableName,
     // pk: $pk,           // コメントアウト（標準デコレータとの衝突回避）
