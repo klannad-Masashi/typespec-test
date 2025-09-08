@@ -36,7 +36,7 @@ class SpringGenerator:
             
         self.config_path = config_path
         self.project_root = Path(__file__).parent.parent.parent
-        self.base_output_dir = self.project_root / "output" / "backend"
+        self.base_output_dir = self.project_root / "output" / "backend" / "src"
         
         # Jinja2環境の初期化
         template_dir = Path(__file__).parent.parent / "templates" / "spring"
