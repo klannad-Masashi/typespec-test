@@ -5,6 +5,7 @@
 import {
   createTypeSpecLibrary,
   DecoratorContext,
+  Enum,
   Model,
   ModelProperty,
 } from "@typespec/compiler";
@@ -69,6 +70,11 @@ export function $precisionScale(
   setExtension(ctx.program, target, "x-scale", scale);
 }
 
+// ===== Enum系 =====
+export function $makeEnumJava(ctx: DecoratorContext, target: Enum) {
+  setExtension(ctx.program, target, "x-makeEnumJava", true);
+}
+
 // IDE 用（任意）
 export const $decorators = {
   "TypeSpecGen.DDL": {
@@ -83,5 +89,8 @@ export const $decorators = {
     dbEnum: $dbEnum,
     length: $length,
     precisionScale: $precisionScale,
+  },
+  "TypeSpecGen.Java": {
+    makeEnumJava: $makeEnumJava,
   },
 };

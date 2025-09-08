@@ -12,7 +12,7 @@ using TypeSpec.Versioning;
 using ProductModels;
 using TypeSpecGen.Enums;
 
-@service({
+@service(#{
   title: "Product Management API",
 })
 @server("http://localhost:8080", "Development server")

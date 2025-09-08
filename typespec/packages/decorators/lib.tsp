@@ -29,3 +29,8 @@ extern dec dbEnum(target: ModelProperty, values: valueof string[]);
 /** 型ヒント */
 extern dec length(target: ModelProperty, len: valueof numeric);
 extern dec precisionScale(target: ModelProperty, precision: valueof numeric, scale: valueof numeric);
+
+namespace TypeSpecGen.Java;
+
+/** Java Enum生成マーカー */
+extern dec makeEnumJava(target: Enum);

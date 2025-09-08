@@ -1,9 +1,14 @@
 // lib.tsp
 // 共通Enum定義
 
+import "@typespec-gen/decorators";
+
+using TypeSpecGen.Java;
+
 namespace TypeSpecGen.Enums;
 
 // ユーザーステータス
+@TypeSpecGen.Java.makeEnumJava
 enum UserStatus {
   Active: "active",
   Inactive: "inactive",
@@ -12,6 +17,7 @@ enum UserStatus {
 
 // ユーザーロール
 @doc("ユーザーロール")
+@TypeSpecGen.Java.makeEnumJava
 enum UserRole {
   @doc("管理者")
   Admin: "admin",
@@ -25,6 +31,7 @@ enum UserRole {
 
 // ログイン試行結果
 @doc("ログイン試行結果")
+@TypeSpecGen.Java.makeEnumJava
 enum LoginResult {
   @doc("成功")
   Success: "success",
@@ -41,6 +48,7 @@ enum LoginResult {
 
 // 商品カテゴリ
 @doc("商品カテゴリ")
+@TypeSpecGen.Java.makeEnumJava
 enum ProductCategory {
   @doc("家電")
   Electronics: "electronics",
@@ -60,6 +68,7 @@ enum ProductCategory {
 
 // 商品ステータス
 @doc("商品ステータス")
+@TypeSpecGen.Java.makeEnumJava
 enum ProductStatus {
   @doc("利用可能")
   Available: "available",
@@ -72,6 +81,7 @@ enum ProductStatus {
 }
 
 // 注文ステータス
+@TypeSpecGen.Java.makeEnumJava
 enum OrderStatus {
   Pending: "pending",
   Processing: "processing",

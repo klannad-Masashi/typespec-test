@@ -10,7 +10,7 @@ using TypeSpec.Rest;
 using TypeSpec.Versioning;
 using AuthModels;
 
-@service({
+@service(#{
   title: "Authentication API",
 })
 @server("http://localhost:8080", "Development server")

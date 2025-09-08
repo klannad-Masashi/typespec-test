@@ -14,7 +14,7 @@ using TypeSpecGen.DDL;
 using TypeSpecGen.Enums;
 using UserModels;
 
-@service({
+@service(#{
   title: "User Management API",
 })
 @server("http://localhost:8080", "Development server")
