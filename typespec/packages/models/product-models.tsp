@@ -1,8 +1,8 @@
 import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
-import "@typespec-test/common";
-import "@typespec-test/decorators";
+import "@typespec-gen/common";
+import "@typespec-gen/decorators";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;

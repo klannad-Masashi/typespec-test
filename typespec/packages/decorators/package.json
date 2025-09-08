@@ -1,5 +1,5 @@
 {
-  "name": "@typespec-test/decorators",
+  "name": "@typespec-gen/decorators",
   "version": "1.0.0",
   "type": "module",
   "main": "./dist/lib.js",

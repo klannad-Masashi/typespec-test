@@ -1,5 +1,5 @@
 {
-  "name": "@typespec-test/common",
+  "name": "@typespec-gen/common",
   "version": "1.0.0",
   "description": "TypeSpec共通型定義",
   "type": "module",

@@ -1,14 +1,14 @@
 {
-  "name": "@typespec-test/user-api",
+  "name": "@typespec-gen/user-api",
   "version": "1.0.0",
   "description": "ユーザー管理API",
   "scripts": {
     "compile": "mkdir -p /app/output/openapi/user-api && tsp compile user-api.tsp --output-dir /app/output/openapi/user-api && mv /app/output/openapi/user-api/@typespec/openapi3/openapi.yaml /app/output/openapi/user-api.yaml && rm -rf /app/output/openapi/user-api 2>/dev/null || true"
   },
   "dependencies": {
-    "@typespec-test/common": "*",
-    "@typespec-test/decorators": "*",
-    "@typespec-test/enums": "*"
+    "@typespec-gen/common": "*",
+    "@typespec-gen/decorators": "*",
+    "@typespec-gen/enums": "*"
   },
   "devDependencies": {
     "@typespec/compiler": "^0.66.0",

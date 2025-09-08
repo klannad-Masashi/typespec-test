@@ -1,5 +1,5 @@
 {
-  "name": "@typespec-test/enums",
+  "name": "@typespec-gen/enums",
   "version": "1.0.0",
   "type": "module",
   "main": "./lib.tsp",

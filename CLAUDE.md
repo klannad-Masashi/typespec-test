@@ -45,7 +45,7 @@ TypeSpec定義 (.tspファイル)
 ## プロジェクト構造（想定）
 
 ```
-typespec-test/
+typespec-gen/
 ├── typespec/           # TypeSpec API定義 (.tspファイル)
 ├── generated/
 │   ├── backend/        # 生成されたSpring Bootコード

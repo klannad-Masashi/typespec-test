@@ -1,4 +1,4 @@
-# typespec-test
+# typespec-gen
 
 TypeSpecを真の情報源とする、マルチAPI対応フルスタックWeb開発コード生成ツールです。
 
@@ -35,7 +35,7 @@ TypeSpecを真の情報源とする、マルチAPI対応フルスタックWeb開
 ## プロジェクト構造
 
 ```
-typespec-test/
+typespec-gen/
 ├── typespec/              # TypeSpec関連
 │   ├── Dockerfile        # TypeSpec開発環境用イメージ
 │   ├── package.json      # TypeSpec依存関係（Workspace Root）
@@ -359,7 +359,7 @@ docker compose exec generator python generator/main.py --target spring --input o
 ### モデルが見つからない場合
 
 - `packages/models/lib.tsp`に適切にimportされているか確認
-- APIファイルで`import "@typespec-test/models"`されているか確認
+- APIファイルで`import "@typespec-gen/models"`されているか確認
 - `using UserModels;`（または適切な名前空間）が宣言されているか確認
 
 ### 生成ファイルのクリーンアップ

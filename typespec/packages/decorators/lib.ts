@@ -11,7 +11,7 @@ import {
 import { setExtension } from "@typespec/openapi";
 
 export const $lib = createTypeSpecLibrary({
-  name: "@typespec-test/decorators", // パッケージ名（package.json と対応させる）
+  name: "@typespec-gen/decorators", // パッケージ名（package.json と対応させる）
   diagnostics: {},
 });
 

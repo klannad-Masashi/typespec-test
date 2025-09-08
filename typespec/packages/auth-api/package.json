@@ -1,12 +1,12 @@
 {
-  "name": "@typespec-test/auth-api",
+  "name": "@typespec-gen/auth-api",
   "version": "1.0.0",
   "description": "認証API",
   "scripts": {
     "compile": "mkdir -p /app/output/openapi/auth-api && tsp compile auth-api.tsp --output-dir /app/output/openapi/auth-api && mv /app/output/openapi/auth-api/@typespec/openapi3/openapi.yaml /app/output/openapi/auth-api.yaml && rm -rf /app/output/openapi/auth-api 2>/dev/null || true"
   },
   "dependencies": {
-    "@typespec-test/common": "*"
+    "@typespec-gen/common": "*"
   },
   "devDependencies": {
     "@typespec/compiler": "^0.66.0",

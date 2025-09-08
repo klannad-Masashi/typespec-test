@@ -24,7 +24,7 @@ TypeSpecにおける「workspace」は、複数のTypeSpecパッケージやプ�
 ## 現在のプロジェクト構造
 
 ```
-typespec-test/
+project-root/
 ├── typespec/
 │   ├── packages/                 # TypeSpec Workspaceのパッケージディレクトリ
 │   │   ├── common/              # 共通型定義パッケージ
@@ -49,7 +49,7 @@ typespec-test/
 
 ### 共通パッケージ（Foundation Layer）
 
-#### 1. `@typespec-test/common`
+#### 1. `@typespec-gen/common`
 - **役割**: システム全体で共通利用される基本型定義
 - **提供するもの**:
   - `TimestampFields`: 作成日時・更新日時フィールド
@@ -58,7 +58,7 @@ typespec-test/
   - `ErrorResponse`: エラーレスポンス型
   - `DeleteResponse`: 削除レスポンス型
 
-#### 2. `@typespec-test/decorators`
+#### 2. `@typespec-gen/decorators`
 - **役割**: DDL生成用のカスタムデコレーター
 - **提供するもの**:
   - `@makeDDL`: モデルをDDL生成対象としてマーク
@@ -67,7 +67,7 @@ typespec-test/
   - `@length`: 文字列長制約
   - その他データベース関連のメタデータ
 
-#### 3. `@typespec-test/enums`
+#### 3. `@typespec-gen/enums`
 - **役割**: システム全体で使用する列挙型定義
 - **提供するもの**: 各種ステータス、カテゴリなどの列挙型
 
@@ -75,17 +75,17 @@ typespec-test/
 
 #### 1. `user-api`
 - **機能**: ユーザー管理API
-- **依存関係**: `@typespec-test/common`, `@typespec-test/decorators`, `@typespec-test/enums`
+- **依存関係**: `@typespec-gen/common`, `@typespec-gen/decorators`, `@typespec-gen/enums`
 - **提供するAPI**: ユーザーCRUD操作
 
 #### 2. `product-api`
 - **機能**: 商品管理API
-- **依存関係**: `@typespec-test/common`, `@typespec-test/decorators`, `@typespec-test/enums`
+- **依存関係**: `@typespec-gen/common`, `@typespec-gen/decorators`, `@typespec-gen/enums`
 - **提供するAPI**: 商品CRUD操作
 
 #### 3. `auth-api`
 - **機能**: 認証・認可API
-- **依存関係**: `@typespec-test/common`, `@typespec-test/decorators`, `@typespec-test/enums`
+- **依存関係**: `@typespec-gen/common`, `@typespec-gen/decorators`, `@typespec-gen/enums`
 - **提供するAPI**: ログイン、トークン管理など
 
 ## パッケージの使用方法
@@ -93,13 +93,13 @@ typespec-test/
 ### importの書き方
 ```typescript
 // 共通型定義のimport
-import "@typespec-test/common";
+import "@typespec-gen/common";
 
 // カスタムデコレーターのimport
-import "@typespec-test/decorators";
+import "@typespec-gen/decorators";
 
 // 列挙型のimport
-import "@typespec-test/enums";
+import "@typespec-gen/enums";
 
 // 名前空間の使用宣言
 using MyService.DDL;          // デコレーター用

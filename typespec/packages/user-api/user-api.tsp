@@ -2,10 +2,10 @@ import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi3";
 import "@typespec/versioning";
-import "@typespec-test/common";
-import "@typespec-test/decorators";
-import "@typespec-test/enums";
-import "@typespec-test/models";
+import "@typespec-gen/common";
+import "@typespec-gen/decorators";
+import "@typespec-gen/enums";
+import "@typespec-gen/models";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
@@ -20,7 +20,7 @@ using UserModels;
 @server("http://localhost:8080", "Development server")
 namespace UserManagementAPI;
 
-// モデルは@typespec-test/modelsパッケージから参照
+// モデルは@typespec-gen/modelsパッケージから参照
 
 // API エンドポイント定義
 @tag("Users")

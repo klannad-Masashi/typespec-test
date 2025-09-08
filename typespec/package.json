@@ -1,5 +1,5 @@
 {
-  "name": "@typespec-test/workspace",
+  "name": "@typespec-gen/workspace",
   "version": "1.0.0",
   "description": "TypeSpec API定義と生成 - Workspace Root",
   "private": true,
@@ -7,12 +7,12 @@
     "packages/*"
   ],
   "scripts": {
-    "build:decorators": "npm run build --workspace=@typespec-test/decorators",
-    "build:enums": "npm run build --workspace=@typespec-test/enums",
+    "build:decorators": "npm run build --workspace=@typespec-gen/decorators",
+    "build:enums": "npm run build --workspace=@typespec-gen/enums",
     "build:all": "npm run build:decorators && npm run build:enums",
-    "typespec:compile-user": "npm run compile --workspace=@typespec-test/user-api",
-    "typespec:compile-product": "npm run compile --workspace=@typespec-test/product-api",
-    "typespec:compile-auth": "npm run compile --workspace=@typespec-test/auth-api",
+    "typespec:compile-user": "npm run compile --workspace=@typespec-gen/user-api",
+    "typespec:compile-product": "npm run compile --workspace=@typespec-gen/product-api",
+    "typespec:compile-auth": "npm run compile --workspace=@typespec-gen/auth-api",
     "typespec:compile-all-apis": "npm run typespec:compile-user && npm run typespec:compile-product && npm run typespec:compile-auth",
     "typespec:compile-all": "npm run build:all && npm run typespec:compile-all-apis"
   },
