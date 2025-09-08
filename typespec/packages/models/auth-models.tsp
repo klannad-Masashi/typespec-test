@@ -192,3 +192,18 @@ model PasswordResetResponse {
   @doc("メッセージ")
   message: string;
 }
+
+@doc("パスワード変更レスポンス")
+model ChangePasswordResponse {
+  @doc("変更成功フラグ")
+  success: boolean;
+
+  @doc("メッセージ")
+  message: string;
+}
+
+@doc("ユーザー情報レスポンス")
+model UserProfileResponse {
+  @doc("ユーザー情報")
+  user: AuthUser;
+}

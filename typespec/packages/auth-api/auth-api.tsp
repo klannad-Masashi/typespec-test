@@ -16,22 +16,7 @@ using AuthModels;
 @server("http://localhost:8080", "Development server")
 namespace AuthenticationAPI;
 
-// モデルは@typespec-test/modelsパッケージから参照
-
-@doc("パスワード変更レスポンス")
-model ChangePasswordResponse {
-  @doc("変更成功フラグ")
-  success: boolean;
-
-  @doc("メッセージ")
-  message: string;
-}
-
-@doc("ユーザー情報レスポンス")
-model UserProfileResponse {
-  @doc("ユーザー情報")
-  user: AuthUser;
-}
+// モデルは@typespec-gen/modelsパッケージから参照
 
 // API エンドポイント定義
 @tag("Authentication")
