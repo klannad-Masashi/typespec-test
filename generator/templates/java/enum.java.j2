@@ -1,0 +1,58 @@
+package {{ package_name }};
+
+/**
+ * {{ description }}
+ * 
+ * 元のTypeSpec定義: {{ original_name }}
+ * API: {{ api_name }}
+ * 生成日時: {{ generated_at }}
+ * 
+ * @author TypeSpec Generator
+ */
+public enum {{ class_name }} {
+    {% for item in enum_values -%}
+    /** {{ item.value }} */
+    {{ item.name }}("{{ item.value }}"){% if not loop.last %},{% else %};{% endif %}
+    {% endfor %}
+
+    private final String value;
+
+    /**
+     * コンストラクタ
+     * @param value enum値
+     */
+    {{ class_name }}(String value) {
+        this.value = value;
+    }
+
+    /**
+     * enum値を取得
+     * @return enum値
+     */
+    public String getValue() {
+        return value;
+    }
+
+    /**
+     * 文字列からenumを取得
+     * @param value 文字列値
+     * @return 対応するenum、見つからない場合はnull
+     */
+    public static {{ class_name }} fromValue(String value) {
+        for ({{ class_name }} item : values()) {
+            if (item.value.equals(value)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 文字列表現を返す
+     * @return enum値
+     */
+    @Override
+    public String toString() {
+        return value;
+    }
+}

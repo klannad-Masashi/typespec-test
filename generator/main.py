@@ -22,6 +22,7 @@ from generator.scripts.csv_generator import CSVGenerator
 from generator.scripts.ddl_generator import DDLGenerator
 from generator.scripts.spring_generator import SpringGenerator  
 from generator.scripts.angular_generator import AngularGenerator
+from generator.scripts.java_enum_generator import JavaEnumGenerator
 
 # ログ設定
 logging.basicConfig(
@@ -89,7 +90,7 @@ def main():
     parser = argparse.ArgumentParser(description='TypeSpec Generator - マルチAPI対応版')
     parser.add_argument(
         '--target', 
-        choices=['all', 'csv', 'ddl', 'spring', 'angular'],
+        choices=['all', 'csv', 'ddl', 'spring', 'angular', 'java-enum'],
         default='all',
         help='生成対象 (default: all)'
     )
@@ -154,6 +155,12 @@ def main():
             angular_gen = AngularGenerator(openapi_files, args.config)
             angular_gen.generate()
             logger.info("Angular生成完了")
+            
+        if args.target in ['all', 'java-enum']:
+            logger.info("Java Enum生成を開始...")
+            java_enum_gen = JavaEnumGenerator(openapi_files, args.config)
+            java_enum_gen.generate()
+            logger.info("Java Enum生成完了")
             
         logger.info("全ての生成処理が完了しました")
         return 0
