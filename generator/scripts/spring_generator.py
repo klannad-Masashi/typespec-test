@@ -78,7 +78,7 @@ class SpringGenerator:
                 'output_base': 'output/'
             },
             'spring': {
-                'base_package': 'com.example.userapi',
+                'base_package': 'com.example.api',
                 'controller_package': 'controller',
                 'dto_package': 'dto', 
                 'entity_package': 'entity',
@@ -103,9 +103,7 @@ class SpringGenerator:
                 return api_config['spring']['base_package']
         
         # デフォルトパッケージ名を生成
-        base = config.get('spring', {}).get('base_package', 'com.example')
-        if base.endswith('api'):
-            base = base[:-3]  # 既存の'api'を削除
+        base = config.get('spring', {}).get('base_package', 'com.example.api')
         return f"{base}.{api_name}api"
     
     def get_api_output_dir(self, api_name, package_name):

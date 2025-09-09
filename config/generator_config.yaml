@@ -21,7 +21,7 @@ tables:
 
 # Spring Boot設定
 spring:
-  base_package: com.example.userapi
+  base_package: com.example.api
   controller_package: controller
   dto_package: dto
   entity_package: entity
