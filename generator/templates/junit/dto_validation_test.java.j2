@@ -53,9 +53,8 @@ class {{ dto_info.class_name }}Test {
     void validation_Success() {
         // Given
         {{ dto_info.class_name }} dto = new {{ dto_info.class_name }}();
-{%- for field in dto_info.fields %}
-        dto.set{{ field.name|title }}({{ get_valid_test_value(field) }});  // TODO: 適切な値を設定
-{%- endfor %}
+{% for field in dto_info.fields %}        dto.set{{ field.name|title }}({{ get_valid_test_value(field) }});  // TODO: 適切な値を設定
+{% endfor %}
 
         // When
         Set<ConstraintViolation<{{ dto_info.class_name }}>> violations = validator.validate(dto);
@@ -82,7 +81,7 @@ class {{ dto_info.class_name }}Test {
                 .isEqualTo("{{ field.name }}");
     }
 
-{%- if '@Size' in field.validations|join(' ') or '@Length' in field.validations|join(' ') %}
+{% if '@Size' in field.validations|join(' ') or '@Length' in field.validations|join(' ') %}
     @ParameterizedTest
     @ValueSource(strings = {"", " ", "a", "{{ 'x' * 256 }}"})  // TODO: 実際の制限値に調整
     @DisplayName("{{ field.name }} - 長さ制限でバリデーション失敗")
@@ -97,9 +96,9 @@ class {{ dto_info.class_name }}Test {
         // Then
         assertThat(violations).isNotEmpty();
     }
-{%- endif %}
+{% endif %}
 
-{%- if '@Email' in field.validations|join(' ') %}
+{% if '@Email' in field.validations|join(' ') %}
     @ParameterizedTest
     @ValueSource(strings = {"invalid-email", "test@", "@example.com", "test.example.com"})
     @DisplayName("{{ field.name }} - 不正なメールアドレスでバリデーション失敗")
@@ -116,9 +115,9 @@ class {{ dto_info.class_name }}Test {
         assertThat(violations.iterator().next().getMessage())
                 .contains("email");  // TODO: 具体的なメッセージに調整
     }
-{%- endif %}
+{% endif %}
 
-{%- if '@Min' in field.validations|join(' ') or '@Max' in field.validations|join(' ') %}
+{% if '@Min' in field.validations|join(' ') or '@Max' in field.validations|join(' ') %}
     @ParameterizedTest
     @ValueSource(ints = {-1, 0, 101})  // TODO: 実際の制限値に調整
     @DisplayName("{{ field.name }} - 数値範囲制限でバリデーション失敗")
@@ -133,9 +132,9 @@ class {{ dto_info.class_name }}Test {
         // Then
         assertThat(violations).isNotEmpty();
     }
-{%- endif %}
+{% endif %}
 
-{%- endif %}
+{% endif %}
 {% endfor %}
 
     @Test
@@ -158,9 +157,9 @@ class {{ dto_info.class_name }}Test {
     void testToString() {
         // Given
         {{ dto_info.class_name }} dto = new {{ dto_info.class_name }}();
-{%- for field in dto_info.fields %}
+{% for field in dto_info.fields %}
         dto.set{{ field.name|title }}({{ get_valid_test_value(field) }});
-{%- endfor %}
+{% endfor %}
 
         // When
         String result = dto.toString();
@@ -176,10 +175,9 @@ class {{ dto_info.class_name }}Test {
         // Given
         {{ dto_info.class_name }} dto1 = new {{ dto_info.class_name }}();
         {{ dto_info.class_name }} dto2 = new {{ dto_info.class_name }}();
-{%- for field in dto_info.fields %}
-        dto1.set{{ field.name|title }}({{ get_valid_test_value(field) }});
+{% for field in dto_info.fields %}        dto1.set{{ field.name|title }}({{ get_valid_test_value(field) }});
         dto2.set{{ field.name|title }}({{ get_valid_test_value(field) }});
-{%- endfor %}
+{% endfor %}
 
         // Then
         assertThat(dto1).isEqualTo(dto2);

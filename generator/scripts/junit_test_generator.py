@@ -76,7 +76,7 @@ class JunitTestGenerator:
             'endpoints': endpoints,
             'config': config,
             'generated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'package_name': controller_info['package'].replace('.controller', '.test.controller')
+            'package_name': controller_info['package']
         }
         
         return template.render(**template_vars)
@@ -89,7 +89,7 @@ class JunitTestGenerator:
             'dto_info': dto_info,
             'config': config,
             'generated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'package_name': dto_info['package'].replace('.dto', '.test.dto')
+            'package_name': dto_info['package']
         }
         
         return template.render(**template_vars)
@@ -177,9 +177,8 @@ class JunitTestGenerator:
             
             # パッケージパスを生成
             package_parts = controller_info['package'].split('.')
-            # .controller を .test.controller に変更
-            test_package_parts = package_parts[:-1] + ['test', 'controller']
-            package_path = base_path / '/'.join(test_package_parts)
+            # .controllerをそのまま使用
+            package_path = base_path / '/'.join(package_parts)
             package_path.mkdir(parents=True, exist_ok=True)
             
             # ファイル名生成
@@ -203,9 +202,8 @@ class JunitTestGenerator:
             
             # パッケージパスを生成
             package_parts = dto_info['package'].split('.')
-            # .dto を .test.dto に変更
-            test_package_parts = package_parts[:-1] + ['test', 'dto']
-            package_path = base_path / '/'.join(test_package_parts)
+            # .dtoをそのまま使用
+            package_path = base_path / '/'.join(package_parts)
             package_path.mkdir(parents=True, exist_ok=True)
             
             # ファイル名生成
