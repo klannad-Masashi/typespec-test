@@ -1,0 +1,117 @@
+package {{ package_name }};
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * {{ controller_info.class_name }} のテストクラス
+ * 
+ * 生成日時: {{ generated_at }}
+ * API: {{ controller_info.api_name }}
+ * 
+ * @author TypeSpec Test Generator
+ */
+@ExtendWith(MockitoExtension.class)
+@WebMvcTest({{ controller_info.class_name }}.class)
+class {{ controller_info.class_name }}Test {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    // TODO: 必要に応じてサービスクラスをモック
+    // @MockBean
+    // private {{ controller_info.api_name|title }}Service {{ controller_info.api_name }}Service;
+
+    @BeforeEach
+    void setUp() {
+        // テスト前処理
+    }
+
+{% for endpoint in endpoints %}
+    @Test
+    @DisplayName("{{ endpoint.description if endpoint.description else endpoint.method + ' ' + endpoint.path }} - 正常ケース")
+    void test{{ endpoint.operation_id|replace('_', '')|title if endpoint.operation_id else endpoint.method|title + endpoint.path|replace('/', '')|replace('{', '')|replace('}', '')|title }}_Success() throws Exception {
+        // Given
+        // TODO: テストデータの準備
+        
+        // When & Then
+        mockMvc.perform({{ endpoint.method.lower() }}("{{ endpoint.path.replace('{', '{test') if '{' in endpoint.path else endpoint.path }}")
+{% if endpoint.method == 'POST' or endpoint.method == 'PUT' %}                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"test\": \"data\"}")  // TODO: 実際のリクエストボディ
+{% endif %}                )
+                .andExpect(status().isOk());  // TODO: 期待するステータスコードに変更
+        
+        // TODO: サービスメソッドの呼び出し検証
+        // verify({{ controller_info.api_name }}Service).someMethod();
+    }
+
+    @Test
+    @DisplayName("{{ endpoint.description if endpoint.description else endpoint.method + ' ' + endpoint.path }} - 異常ケース")
+    void test{{ endpoint.operation_id|replace('_', '')|title if endpoint.operation_id else endpoint.method|title + endpoint.path|replace('/', '')|replace('{', '')|replace('}', '')|title }}_Error() throws Exception {
+        // Given
+        // TODO: エラーケースのテストデータ準備
+        
+        // When & Then
+        mockMvc.perform({{ endpoint.method.lower() }}("{{ endpoint.path.replace('{', '{invalid') if '{' in endpoint.path else endpoint.path }}")
+{% if endpoint.method == 'POST' or endpoint.method == 'PUT' %}                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"invalid\": \"data\"}")  // TODO: 不正なリクエストボディ
+{% endif %}                )
+                .andExpect(status().isBadRequest());  // TODO: 期待するエラーステータス
+    }
+
+{%- if endpoint.parameters %}
+    
+    @ParameterizedTest
+    @ValueSource(strings = {"", " ", "invalid-value"})
+    @DisplayName("{{ endpoint.description if endpoint.description else endpoint.method + ' ' + endpoint.path }} - パラメータ異常ケース")
+    void test{{ endpoint.operation_id|replace('_', '')|title if endpoint.operation_id else endpoint.method|title + endpoint.path|replace('/', '')|replace('{', '')|replace('}', '')|title }}_InvalidParameters(String invalidParam) throws Exception {
+        // Given
+        // TODO: 不正パラメータのテスト
+        
+        // When & Then
+        mockMvc.perform({{ endpoint.method.lower() }}("{{ endpoint.path }}")
+                .param("test_param", invalidParam)  // TODO: 実際のパラメータ名
+                )
+                .andExpect(status().isBadRequest());
+    }
+{%- endif %}
+
+{% endfor %}
+
+    @Test
+    @DisplayName("認証エラーテスト")
+    void testUnauthorized() throws Exception {
+        // Given
+        // TODO: 認証なしの状態を設定
+        
+        // When & Then
+        mockMvc.perform(get("{{ endpoints[0].path if endpoints else '/test' }}"))
+                .andExpect(status().isUnauthorized());  // TODO: 認証が必要な場合
+    }
+
+    @Test
+    @DisplayName("存在しないリソースアクセステスト")
+    void testNotFound() throws Exception {
+        // Given
+        // TODO: 存在しないリソースIDを設定
+        
+        // When & Then
+        mockMvc.perform(get("{{ endpoints[0].path.replace('{', '{nonexistent') if endpoints and '{' in endpoints[0].path else '/test/nonexistent' }}"))
+                .andExpect(status().isNotFound());
+    }
+}

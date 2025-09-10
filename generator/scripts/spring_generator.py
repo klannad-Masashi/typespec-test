@@ -6,6 +6,7 @@ OpenAPI仕様からSpring Bootのコントローラーとドメインオブジ�
 
 import os
 import yaml
+import json
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -434,6 +435,51 @@ public class {{ model_name }} {
             config=config,
             generated_at=datetime.now().isoformat()
         )
+    
+    def collect_controller_metadata(self, api_name, endpoints, package_name, config):
+        """Controllerのメタデータを収集"""
+        controller_name = f"{api_name.title()}Controller"
+        return {
+            "api_name": api_name,
+            "class_name": controller_name,
+            "package": f"{package_name}.{config['spring']['controller_package']}",
+            "endpoints": endpoints  # 実際のエンドポイント情報はextract_models_and_paths_for_apiで取得
+        }
+    
+    def collect_dto_metadata(self, models, package_name, config):
+        """DTOのメタデータを収集"""
+        dto_metadata = []
+        for model_name, model in models.items():
+            dto_info = {
+                "class_name": model_name,
+                "package": f"{package_name}.{config['spring']['dto_package']}",
+                "fields": []
+            }
+            
+            # フィールド情報を収集
+            for field in model.get("fields", []):
+                field_info = {
+                    "name": field.get("name"),
+                    "type": field.get("type"),
+                    "required": field.get("required", False),
+                    "validations": field.get("validation", [])
+                }
+                dto_info["fields"].append(field_info)
+            
+            dto_metadata.append(dto_info)
+        
+        return dto_metadata
+    
+    def save_generation_metadata(self, metadata):
+        """生成メタデータをJSONファイルに保存"""
+        metadata_dir = self.project_root / "output" / "metadata"
+        metadata_dir.mkdir(parents=True, exist_ok=True)
+        
+        metadata_file = metadata_dir / "spring_metadata.json"
+        with open(metadata_file, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"Spring生成メタデータを保存しました: {metadata_file}")
         
     def generate(self):
         """Spring Boot生成のメイン処理 - マルチAPI対応"""
@@ -441,6 +487,13 @@ public class {{ model_name }} {
             # 複数OpenAPI仕様とコンフィグを読み込み
             openapi_specs = self.load_multiple_openapi_specs()
             config = self.load_config()
+            
+            # メタデータ収集用
+            all_metadata = {
+                "generated_at": datetime.now().isoformat(),
+                "controllers": [],
+                "dtos": []
+            }
             
             # 各APIごとに生成
             for api_name, openapi_spec in openapi_specs.items():
@@ -484,7 +537,18 @@ public class {{ model_name }} {
                         f.write(dto_content)
                     logger.info(f"DTOを生成しました: {dto_file}")
                     
+                # メタデータを収集
+                controller_metadata = self.collect_controller_metadata(api_name, endpoints, package_name, config)
+                dto_metadata = self.collect_dto_metadata(models, package_name, config)
+                
+                all_metadata["controllers"].append(controller_metadata)
+                all_metadata["dtos"].extend(dto_metadata)
+                
                 logger.info(f"{api_name} API生成完了: {len(models)}モデル, {len(endpoints)}エンドポイント")
+            
+            # メタデータを保存
+            self.save_generation_metadata(all_metadata)
+            logger.info("Spring Boot生成完了")
                 
         except Exception as e:
             logger.error(f"Spring Boot生成中にエラーが発生しました: {e}")

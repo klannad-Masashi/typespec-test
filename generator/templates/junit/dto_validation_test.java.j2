@@ -1,0 +1,188 @@
+{%- macro get_valid_test_value(field) -%}
+{%- if field.type == 'String' -%}
+"test{{ field.name|title }}"
+{%- elif field.type == 'Integer' -%}
+1
+{%- elif field.type == 'Long' -%}
+1L
+{%- elif field.type == 'Boolean' -%}
+true
+{%- elif field.type == 'Double' -%}
+1.0
+{%- else -%}
+null  // TODO: {{ field.type }}型の適切な値を設定
+{%- endif -%}
+{%- endmacro %}
+
+package {{ package_name }};
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+
+import javax.validation.ConstraintViolation;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.*;
+
+/**
+ * {{ dto_info.class_name }} のバリデーションテストクラス
+ * 
+ * 生成日時: {{ generated_at }}
+ * 
+ * @author TypeSpec Test Generator
+ */
+class {{ dto_info.class_name }}Test {
+
+    private Validator validator;
+
+    @BeforeEach
+    void setUp() {
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        validator = factory.getValidator();
+    }
+
+    @Test
+    @DisplayName("正常なデータでバリデーション成功")
+    void validation_Success() {
+        // Given
+        {{ dto_info.class_name }} dto = new {{ dto_info.class_name }}();
+{%- for field in dto_info.fields %}
+        dto.set{{ field.name|title }}({{ get_valid_test_value(field) }});  // TODO: 適切な値を設定
+{%- endfor %}
+
+        // When
+        Set<ConstraintViolation<{{ dto_info.class_name }}>> violations = validator.validate(dto);
+
+        // Then
+        assertThat(violations).isEmpty();
+    }
+
+{% for field in dto_info.fields %}
+{%- if field.validations %}
+    @Test
+    @DisplayName("{{ field.name }} - null値でバリデーション失敗")
+    void validation_{{ field.name|title }}_Null() {
+        // Given
+        {{ dto_info.class_name }} dto = new {{ dto_info.class_name }}();
+        dto.set{{ field.name|title }}(null);
+
+        // When
+        Set<ConstraintViolation<{{ dto_info.class_name }}>> violations = validator.validate(dto);
+
+        // Then
+        assertThat(violations).isNotEmpty();
+        assertThat(violations.iterator().next().getPropertyPath().toString())
+                .isEqualTo("{{ field.name }}");
+    }
+
+{%- if '@Size' in field.validations|join(' ') or '@Length' in field.validations|join(' ') %}
+    @ParameterizedTest
+    @ValueSource(strings = {"", " ", "a", "{{ 'x' * 256 }}"})  // TODO: 実際の制限値に調整
+    @DisplayName("{{ field.name }} - 長さ制限でバリデーション失敗")
+    void validation_{{ field.name|title }}_InvalidLength(String invalidValue) {
+        // Given
+        {{ dto_info.class_name }} dto = new {{ dto_info.class_name }}();
+        dto.set{{ field.name|title }}(invalidValue);
+
+        // When
+        Set<ConstraintViolation<{{ dto_info.class_name }}>> violations = validator.validate(dto);
+
+        // Then
+        assertThat(violations).isNotEmpty();
+    }
+{%- endif %}
+
+{%- if '@Email' in field.validations|join(' ') %}
+    @ParameterizedTest
+    @ValueSource(strings = {"invalid-email", "test@", "@example.com", "test.example.com"})
+    @DisplayName("{{ field.name }} - 不正なメールアドレスでバリデーション失敗")
+    void validation_{{ field.name|title }}_InvalidEmail(String invalidEmail) {
+        // Given
+        {{ dto_info.class_name }} dto = new {{ dto_info.class_name }}();
+        dto.set{{ field.name|title }}(invalidEmail);
+
+        // When
+        Set<ConstraintViolation<{{ dto_info.class_name }}>> violations = validator.validate(dto);
+
+        // Then
+        assertThat(violations).isNotEmpty();
+        assertThat(violations.iterator().next().getMessage())
+                .contains("email");  // TODO: 具体的なメッセージに調整
+    }
+{%- endif %}
+
+{%- if '@Min' in field.validations|join(' ') or '@Max' in field.validations|join(' ') %}
+    @ParameterizedTest
+    @ValueSource(ints = {-1, 0, 101})  // TODO: 実際の制限値に調整
+    @DisplayName("{{ field.name }} - 数値範囲制限でバリデーション失敗")
+    void validation_{{ field.name|title }}_InvalidRange(int invalidValue) {
+        // Given
+        {{ dto_info.class_name }} dto = new {{ dto_info.class_name }}();
+        dto.set{{ field.name|title }}(invalidValue);
+
+        // When
+        Set<ConstraintViolation<{{ dto_info.class_name }}>> violations = validator.validate(dto);
+
+        // Then
+        assertThat(violations).isNotEmpty();
+    }
+{%- endif %}
+
+{%- endif %}
+{% endfor %}
+
+    @Test
+    @DisplayName("すべてのフィールドがnullの場合のバリデーション")
+    void validation_AllFieldsNull() {
+        // Given
+        {{ dto_info.class_name }} dto = new {{ dto_info.class_name }}();
+        // すべてのフィールドをnullのままにする
+
+        // When
+        Set<ConstraintViolation<{{ dto_info.class_name }}>> violations = validator.validate(dto);
+
+        // Then
+        // TODO: 必須フィールドの数に応じて期待値を調整
+        assertThat(violations.size()).isGreaterThanOrEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("toString()メソッドのテスト")
+    void testToString() {
+        // Given
+        {{ dto_info.class_name }} dto = new {{ dto_info.class_name }}();
+{%- for field in dto_info.fields %}
+        dto.set{{ field.name|title }}({{ get_valid_test_value(field) }});
+{%- endfor %}
+
+        // When
+        String result = dto.toString();
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result).contains("{{ dto_info.class_name }}");
+    }
+
+    @Test
+    @DisplayName("equals()とhashCode()のテスト")
+    void testEqualsAndHashCode() {
+        // Given
+        {{ dto_info.class_name }} dto1 = new {{ dto_info.class_name }}();
+        {{ dto_info.class_name }} dto2 = new {{ dto_info.class_name }}();
+{%- for field in dto_info.fields %}
+        dto1.set{{ field.name|title }}({{ get_valid_test_value(field) }});
+        dto2.set{{ field.name|title }}({{ get_valid_test_value(field) }});
+{%- endfor %}
+
+        // Then
+        assertThat(dto1).isEqualTo(dto2);
+        assertThat(dto1.hashCode()).isEqualTo(dto2.hashCode());
+    }
+}

@@ -23,6 +23,7 @@ from generator.scripts.ddl_generator import DDLGenerator
 from generator.scripts.spring_generator import SpringGenerator  
 from generator.scripts.angular_generator import AngularGenerator
 from generator.scripts.java_enum_generator import JavaEnumGenerator
+from generator.scripts.junit_test_generator import JunitTestGenerator
 
 # ログ設定
 logging.basicConfig(
@@ -90,7 +91,7 @@ def main():
     parser = argparse.ArgumentParser(description='TypeSpec Generator - マルチAPI対応版')
     parser.add_argument(
         '--target', 
-        choices=['all', 'csv', 'ddl', 'spring', 'angular', 'java-enum'],
+        choices=['all', 'csv', 'ddl', 'spring', 'angular', 'java-enum', 'junit-test'],
         default='all',
         help='生成対象 (default: all)'
     )
@@ -161,6 +162,12 @@ def main():
             java_enum_gen = JavaEnumGenerator(openapi_files, args.config)
             java_enum_gen.generate()
             logger.info("Java Enum生成完了")
+            
+        if args.target in ['all', 'junit-test']:
+            logger.info("JUnit Test生成を開始...")
+            junit_gen = JunitTestGenerator(args.config)
+            junit_gen.generate()
+            logger.info("JUnit Test生成完了")
             
         logger.info("全ての生成処理が完了しました")
         return 0
