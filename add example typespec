@@ -1,0 +1,88 @@
+// example.tsp
+import "@typespec/http";
+import "@typespec/openapi";
+import "@typespec/validation";
+// （必要に応じて認可表現を付けたい場合は http-authentication も：
+// import "@typespec/http-authentication";
+// using TypeSpec.HttpAuth;
+import "@typespec/versioning";
+
+using TypeSpec.Http;
+using TypeSpec.OpenAPI;
+using TypeSpec.Validation;
+using TypeSpec.Versioning;
+
+@service({
+  title: "Example Service",
+  version: "v1"
+})
+@server(
+  "prod",
+  "https://api.example.com"
+)
+namespace ExampleApi {
+
+  // 認可（ROLE_EXAMPLE 相当）を厳密に表現したければ
+  // ベアラ or OAuth2 を定義して @useAuth(...) を付与する。
+  // ここでは省略（アプリ側でリクエスト属性から解決する前提）。
+
+  @route("/api/v1/example")
+  interface ExampleService {
+
+    @post
+    @route("/list")
+    // Java: @PostMapping("/api/v1/example/list")
+    // リクエスト属性 exampleUserId は「クライアントが送らないサーバ内部属性」
+    // なので API パラメータには出さず、レスポンスのみで返します。
+    op list(@body body: InDto): OutDto;
+  }
+
+  // ====== Models ======
+
+  model InDto {
+    // required
+    name: string;
+
+    // @Nullable → optional
+    @optional
+    nullableValue?: string;
+
+    // @Nullable @NotEmpty
+    @optional
+    @minLength(1)
+    notEmpty?: string;
+
+    // @Nullable @MaxLength(10)
+    @optional
+    @maxLength(10)
+    maxLength?: string;
+
+    // @Nullable @Pattern(alphanumericPattern)
+    // Java 側の alphanumericPattern を展開
+    @optional
+    @pattern("^[A-Za-z0-9]*$")
+    alphanumeric?: string;
+
+    // @Nullable @Min(1) @Max(10)
+    @optional
+    @minValue(1)
+    @maxValue(10)
+    minmax?: int32;
+  }
+
+  model OutDto {
+    message: string;
+    userId: int64;
+    examples: ExampleDto[];
+  }
+
+  // Java:
+  // public record ExampleDto(Long exampleId, String name, LocalDateTime createdAt, LocalDateTime updatedAt)
+  // TypeSpec では相互運用性のために utcDateTime へマップ
+  model ExampleDto {
+    exampleId: int64;
+    name: string;
+    createdAt: utcDateTime; // ← LocalDateTime の代替
+    updatedAt: utcDateTime; // ← LocalDateTime の代替
+  }
+}
