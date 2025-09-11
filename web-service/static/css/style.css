@@ -1,0 +1,178 @@
+/* TypeSpec Generator Web Service CSS */
+
+body {
+    background-color: #f8f9fa;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-header {
+    background-color: #e9ecef;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+/* モデル項目のスタイル */
+.model-item {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6 !important;
+}
+
+.model-item:hover {
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+/* フィールド項目のスタイル */
+.field-item {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6 !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.field-item:hover {
+    background-color: #f1f3f5;
+}
+
+/* フィールドコンテナ */
+.fields-container {
+    min-height: 60px;
+    border: 1px dashed #dee2e6;
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+}
+
+.fields-container:empty::before {
+    content: "フィールドを追加してください";
+    color: #6c757d;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+}
+
+/* ボタンスタイル */
+.btn-outline-success:hover,
+.btn-outline-primary:hover,
+.btn-outline-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15);
+}
+
+/* ステータスバッジ */
+.badge.bg-success {
+    background-color: #198754 !important;
+}
+
+.badge.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.badge.bg-warning {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
+/* モーダル */
+.modal-content {
+    border-radius: 0.5rem;
+}
+
+/* フォームバリデーション */
+.is-invalid {
+    border-color: #dc3545;
+}
+
+.invalid-feedback {
+    display: block;
+}
+
+/* プログレスバー（処理中表示用） */
+.progress {
+    height: 0.5rem;
+}
+
+/* コードブロック */
+.code-block {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    white-space: pre-wrap;
+}
+
+/* API一覧カード */
+.api-card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.api-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+    
+    .card-body {
+        padding: 1rem 0.5rem;
+    }
+    
+    .field-item .col-md-3,
+    .field-item .col-md-2 {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* アニメーション */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* ローディングスピナー */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* 成功・エラーメッセージ */
+.alert {
+    border-radius: 0.5rem;
+}
+
+/* ツールチップカスタマイズ */
+.tooltip {
+    font-size: 0.875rem;
+}
+
+/* フォーカス状態の改善 */
+.form-control:focus,
+.form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* 必須項目マーカー */
+.text-danger {
+    font-weight: bold;
+}

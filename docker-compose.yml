@@ -45,6 +45,24 @@ services:
     depends_on:
       - typespec
 
+  # TypeSpec Web Service
+  web-service:
+    build:
+      context: ./web-service
+      dockerfile: Dockerfile
+    container_name: typespec-web-service
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/workspace
+    environment:
+      - WORKSPACE_PATH=/workspace
+    networks:
+      - typespec-network
+    depends_on:
+      - typespec
+      - generator
+
   # Spring Boot API（将来的に追加）
   # api:
   #   image: openjdk:11-jre-slim

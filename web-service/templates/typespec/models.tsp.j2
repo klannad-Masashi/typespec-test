@@ -1,0 +1,27 @@
+import "@typespec/http";
+import "@typespec/rest";
+import "@typespec/openapi";
+
+using TypeSpec.Http;
+using TypeSpec.Rest;
+using TypeSpec.OpenAPI;
+
+namespace {{ namespace }};
+
+{% for model in models %}
+/**
+ * {{ model.description or model.name + ' model' }}
+ */
+model {{ model.name }} {
+{% for field in model.fields %}
+  /**
+   * {{ field.description or field.name }}
+   */
+  {% for validation in field.validations -%}
+  {{ validation }}
+  {% endfor -%}
+  {{ field.name }}{% if not field.required %}?{% endif %}: {{ field.type }};
+{% endfor %}
+}
+
+{% endfor %}
