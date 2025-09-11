@@ -111,6 +111,24 @@ class SpringGenerator:
         """API別の出力ディレクトリを取得"""
         package_path = package_name.replace('.', '/')
         return self.base_output_dir / "main" / "java" / package_path
+
+    def normalize_class_name(self, class_name):
+        """クラス名からプレフィックスを除去して正規化する"""
+        # 除去対象のプレフィックスリスト
+        prefixes_to_remove = [
+            'UserModels.',
+            'AuthModels.',
+            'ProductModels.',
+            'ExampleModels.',
+            'TypeSpecGen.Enums.',
+            'TypeSpecGen.',
+        ]
+        
+        for prefix in prefixes_to_remove:
+            if class_name.startswith(prefix):
+                return class_name[len(prefix):]
+        
+        return class_name
         
     def extract_models_and_paths_for_api(self, api_name, openapi_spec, config):
         """API別にモデルとAPIパスを抽出"""
@@ -450,8 +468,10 @@ public class {{ model_name }} {
         """DTOのメタデータを収集"""
         dto_metadata = []
         for model_name, model in models.items():
+            # クラス名を正規化
+            normalized_class_name = self.normalize_class_name(model_name)
             dto_info = {
-                "class_name": model_name,
+                "class_name": normalized_class_name,
                 "package": f"{package_name}.{config['spring']['dto_package']}",
                 "fields": []
             }
@@ -530,8 +550,10 @@ public class {{ model_name }} {
                 dto_dir.mkdir(exist_ok=True)
                 
                 for model_name, model in models.items():
-                    dto_content = self.generate_dto(model_name, model, config)
-                    dto_file = dto_dir / f"{model_name}.java"
+                    # クラス名を正規化
+                    normalized_class_name = self.normalize_class_name(model_name)
+                    dto_content = self.generate_dto(normalized_class_name, model, config)
+                    dto_file = dto_dir / f"{normalized_class_name}.java"
                     
                     with open(dto_file, 'w', encoding='utf-8') as f:
                         f.write(dto_content)

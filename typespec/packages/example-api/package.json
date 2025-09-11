@@ -1,0 +1,18 @@
+{
+  "name": "@typespec-gen/example-api",
+  "version": "1.0.0",
+  "description": "Example API",
+  "scripts": {
+    "compile": "mkdir -p /app/output/openapi/example-api && tsp compile example-api.tsp --output-dir /app/output/openapi/example-api && mv /app/output/openapi/example-api/@typespec/openapi3/openapi.yaml /app/output/openapi/example-api.yaml && rm -rf /app/output/openapi/example-api 2>/dev/null || true"
+  },
+  "dependencies": {
+    "@typespec-gen/common": "*"
+  },
+  "devDependencies": {
+    "@typespec/compiler": "^0.66.0",
+    "@typespec/http": "^0.66.0",
+    "@typespec/rest": "^0.66.0",
+    "@typespec/openapi3": "^0.66.0",
+    "@typespec/versioning": "^0.66.0"
+  }
+}

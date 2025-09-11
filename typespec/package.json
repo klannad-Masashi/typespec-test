@@ -13,7 +13,8 @@
     "typespec:compile-user": "npm run compile --workspace=@typespec-gen/user-api",
     "typespec:compile-product": "npm run compile --workspace=@typespec-gen/product-api",
     "typespec:compile-auth": "npm run compile --workspace=@typespec-gen/auth-api",
-    "typespec:compile-all-apis": "npm run typespec:compile-user && npm run typespec:compile-product && npm run typespec:compile-auth",
+    "typespec:compile-example": "npm run compile --workspace=@typespec-gen/example-api",
+    "typespec:compile-all-apis": "npm run typespec:compile-user && npm run typespec:compile-product && npm run typespec:compile-auth && npm run typespec:compile-example",
     "typespec:compile-all": "npm run build:all && npm run typespec:compile-all-apis"
   },
   "devDependencies": {
