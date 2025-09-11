@@ -4,7 +4,8 @@
   "description": "TypeSpec API定義と生成 - Workspace Root",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "packages/api/*"
   ],
   "scripts": {
     "build:decorators": "npm run build --workspace=@typespec-gen/decorators",
@@ -14,8 +15,12 @@
     "typespec:compile-product": "npm run compile --workspace=@typespec-gen/product-api",
     "typespec:compile-auth": "npm run compile --workspace=@typespec-gen/auth-api",
     "typespec:compile-example": "npm run compile --workspace=@typespec-gen/example-api",
-    "typespec:compile-all-apis": "npm run typespec:compile-user && npm run typespec:compile-product && npm run typespec:compile-auth && npm run typespec:compile-example",
-    "typespec:compile-all": "npm run build:all && npm run typespec:compile-all-apis"
+    "typespec:compile-api-example": "npm run compile --workspace=@typespec-gen/api-example",
+    "generate-spring-api-example": "cd ../generator && python scripts/spring_generator.py ../output/openapi/api-example.yaml",
+    "typespec:compile-all-apis": "npm run typespec:compile-user && npm run typespec:compile-product && npm run typespec:compile-auth && npm run typespec:compile-example && npm run typespec:compile-api-example && npm run typespec:compile-order && npm run typespec:compile-test",
+    "typespec:compile-all": "npm run build:all && npm run typespec:compile-all-apis",
+    "typespec:compile-order": "npm run compile --workspace=@typespec-gen/order-api",
+    "typespec:compile-test": "npm run compile --workspace=@typespec-gen/test-api"
   },
   "devDependencies": {
     "@typespec/compiler": "^0.66.0",

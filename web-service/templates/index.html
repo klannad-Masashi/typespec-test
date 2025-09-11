@@ -13,26 +13,39 @@
             <div class="col-md-12">
                 <h1 class="mb-4">TypeSpec Generator Web Service</h1>
                 
-                <!-- ステータス表示 -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5>システム状態</h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="status-info">
-                            <span class="badge bg-secondary">読み込み中...</span>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- 新規API作成 -->
                 <div class="card mb-4">
                     <div class="card-header">
                         <h5>新規API作成</h5>
                     </div>
                     <div class="card-body">
+                        <h6 class="card-title">API Builder</h6>
                         <p>フォームを使用してTypeSpec APIを簡単に作成できます。</p>
                         <a href="/builder" class="btn btn-primary">API Builder へ</a>
+                    </div>
+                </div>
+
+                <!-- 共通model定義 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>共通model定義</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="card-title">共通データmodel</h6>
+                        <p>すべてのAPIで共有できる共通modelを定義・管理します。</p>
+                        <a href="/common-models" class="btn btn-success">共通model定義 へ</a>
+                    </div>
+                </div>
+
+                <!-- Enum定義 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Enum定義</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="card-title">列挙型定義</h6>
+                        <p>すべてのAPIで共有できるEnum（列挙型）を定義・管理します。</p>
+                        <a href="/enums" class="btn btn-warning">Enum定義 へ</a>
                     </div>
                 </div>
 
@@ -48,14 +61,14 @@
                             <div class="col-md-6 col-lg-4 mb-3">
                                 <div class="card border">
                                     <div class="card-body">
-                                        <h6 class="card-title">{{ api.title() }} API</h6>
+                                        <h6 class="card-title">{{ api.display_name or api.name }} API</h6>
                                         <div class="btn-group-vertical w-100" role="group">
                                             <button type="button" class="btn btn-outline-success btn-sm" 
-                                                    onclick="compileApi('{{ api }}')">
+                                                    onclick="compileApi('{{ api.name }}')">
                                                 TypeSpec コンパイル
                                             </button>
                                             <button type="button" class="btn btn-outline-primary btn-sm" 
-                                                    onclick="generateSpring('{{ api }}')">
+                                                    onclick="generateSpring('{{ api.name }}')">
                                                 Spring Boot 生成
                                             </button>
                                         </div>
@@ -94,11 +107,5 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/static/js/app.js"></script>
     
-    <script>
-        // ページ読み込み時にステータス確認
-        document.addEventListener('DOMContentLoaded', function() {
-            checkSystemStatus();
-        });
-    </script>
 </body>
 </html>

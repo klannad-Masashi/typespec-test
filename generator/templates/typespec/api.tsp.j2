@@ -1,0 +1,37 @@
+import "@typespec/http";
+import "@typespec/rest";
+import "@typespec/openapi";
+{% if has_models %}
+import "../models/{{ api_name }}-models.tsp";
+{% endif %}
+
+using TypeSpec.Http;
+using TypeSpec.Rest;
+using TypeSpec.OpenAPI;
+{% if has_models %}
+using {{ api_name.title() }}Models;
+{% endif %}
+
+@service({
+  title: "{{ api_name.title() }} API",
+  version: "1.0.0",
+  description: "{{ description }}"
+})
+namespace {{ namespace }};
+
+{% for operation in operations %}
+/**
+ * {{ operation.description }}
+ */
+@route("{{ operation.path }}")
+{% if operation.method == "get" %}
+@get op {{ operation.operation }}(): {{ operation.response }};
+{% elif operation.method == "post" %}
+@post op {{ operation.operation }}(@body request: {{ operation.request }}): {{ operation.response }};
+{% elif operation.method == "put" %}
+@put op {{ operation.operation }}(@path id: string, @body request: {{ operation.request }}): {{ operation.response }};
+{% elif operation.method == "delete" %}
+@delete op {{ operation.operation }}(@path id: string): {{ operation.response }};
+{% endif %}
+
+{% endfor %}

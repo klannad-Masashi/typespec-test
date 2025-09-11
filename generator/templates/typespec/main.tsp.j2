@@ -1,0 +1,56 @@
+import "@typespec/http";
+import "@typespec/rest";
+import "@typespec/openapi";
+
+using TypeSpec.Http;
+using TypeSpec.Rest;
+using TypeSpec.OpenAPI;
+
+@service(#{
+  title: "{{ api_name.title() }} API",
+  description: "{{ description }}"
+})
+namespace {{ namespace }};
+
+{% if models %}
+// ===== モデル定義 =====
+{% for model in models %}
+
+/**
+ * {{ model.description or model.name + ' モデル' }}
+ */
+model {{ model.name }} {
+{% for field in model.fields %}
+  /**
+   * {{ field.description or field.name }}
+   */
+{% for decorator in field.validations %}
+  {{ decorator }}
+{% endfor %}
+  {{ field.name }}{% if not field.required %}?{% endif %}: {{ field.type }};
+{% endfor %}
+}
+{% endfor %}
+{% endif %}
+
+{% if operations %}
+// ===== API操作定義 =====
+{% for operation in operations %}
+
+/**
+ * {{ operation.description }}
+ */
+@route("{{ operation.path }}")
+{% if operation.method == "get" %}
+@get op {{ operation.operation }}(): {{ operation.response }}{% if operation.error_responses %} | {% for error in operation.error_responses %}@statusCode({{ error.status_code }}) {{ error.model or 'string' }}{% if not loop.last %} | {% endif %}{% endfor %}{% endif %};
+{% elif operation.method == "post" %}
+@post op {{ operation.operation }}(@body request: {{ operation.request }}): {{ operation.response }}{% if operation.error_responses %} | {% for error in operation.error_responses %}@statusCode({{ error.status_code }}) {{ error.model or 'string' }}{% if not loop.last %} | {% endif %}{% endfor %}{% endif %};
+{% elif operation.method == "put" %}
+@put op {{ operation.operation }}(@path id: string, @body request: {{ operation.request }}): {{ operation.response }}{% if operation.error_responses %} | {% for error in operation.error_responses %}@statusCode({{ error.status_code }}) {{ error.model or 'string' }}{% if not loop.last %} | {% endif %}{% endfor %}{% endif %};
+{% elif operation.method == "delete" %}
+@delete op {{ operation.operation }}(@path id: string): {{ operation.response }}{% if operation.error_responses %} | {% for error in operation.error_responses %}@statusCode({{ error.status_code }}) {{ error.model or 'string' }}{% if not loop.last %} | {% endif %}{% endfor %}{% endif %};
+{% elif operation.method == "patch" %}
+@patch op {{ operation.operation }}(@path id: string, @body request: {{ operation.request }}): {{ operation.response }}{% if operation.error_responses %} | {% for error in operation.error_responses %}@statusCode({{ error.status_code }}) {{ error.model or 'string' }}{% if not loop.last %} | {% endif %}{% endfor %}{% endif %};
+{% endif %}
+{% endfor %}
+{% endif %}

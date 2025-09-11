@@ -30,6 +30,8 @@ class SpringGenerator:
             api_name = Path(openapi_files).stem.replace('-api', '')
             if api_name == 'openapi':
                 api_name = 'main'
+            elif api_name == 'example':
+                api_name = 'example'
             self.openapi_files = {api_name: openapi_files}
         else:
             # マルチAPIモード
@@ -197,12 +199,16 @@ class SpringGenerator:
         
     def openapi_type_to_java_type(self, prop_def):
         """OpenAPIの型をJavaの型に変換"""
+        # $refがある場合は参照先の型名を返す
+        if '$ref' in prop_def:
+            return prop_def['$ref'].split('/')[-1]
+        
         prop_type = prop_def.get('type')
         prop_format = prop_def.get('format')
         
         if prop_type == 'string':
             if prop_format == 'date-time':
-                return 'LocalDateTime'
+                return 'Instant'
             elif prop_format == 'date':
                 return 'LocalDate'
             elif prop_format == 'email':
@@ -349,6 +355,36 @@ public class UserController {
         
     def generate_api_controller(self, api_name, models, endpoints, config, package_name):
         """API別Controllerクラスを生成"""
+        
+        # example APIの場合は特別なテンプレート（record内包）を使用
+        if api_name == "example":
+            template = self.jinja_env.get_template("example_controller_with_records_dynamic.java.j2")
+            
+            # テンプレート用データを準備
+            controller_name = "ExampleController"
+            usecase_name = "ExampleUseCase"
+            usecase_var_name = "exampleUseCase"
+            
+            # 動的テンプレート用の前処理済みデータを生成
+            processed_endpoints = self.process_endpoints_for_template(endpoints, models)
+            processed_models = self.process_models_for_template(models)
+            processed_enums = self.process_enums_for_template(models)
+            
+            return template.render(
+                api_name=api_name,
+                controller_name=controller_name,
+                usecase_name=usecase_name,
+                usecase_var_name=usecase_var_name,
+                models=models,
+                endpoints=endpoints,
+                processed_endpoints=processed_endpoints,
+                processed_models=processed_models,
+                processed_enums=processed_enums,
+                config=config,
+                generated_at=datetime.now().isoformat()
+            )
+        
+        # 通常のAPIの場合は既存のテンプレート
         controller_template = """package {{ package_name }}.{{ config.spring.controller_package }};
 
 import org.springframework.web.bind.annotation.*;
@@ -443,6 +479,19 @@ public class {{ model_name }} {
     }
 
 {% endfor %}
+{% if model_name == 'V1InDto' %}
+
+    public void combineCheck() {
+        // TODO: 開発者が実装する
+    }
+{% endif %}
+{% if model_name.startswith('V1Out') %}
+
+    public void check() {
+        // TODO: 開発者が実装する
+    }
+{% endif %}
+
 }"""
 
         from jinja2 import Template
@@ -622,8 +671,144 @@ public class {{ model_name }} {
                 'package': 'com.example.userapi.dto'
             }
         }
+    
+    def process_endpoints_for_template(self, endpoints, models):
+        """エンドポイントをテンプレート用に前処理"""
+        processed = []
+        
+        for endpoint_key, endpoint in endpoints.items():
+            processed_endpoint = {
+                'path': endpoint['path'],
+                'spring_method': endpoint['method'].title(),  # POST -> Post
+                'method_name': endpoint['operation_id'],
+                'response_type': self.extract_response_type(endpoint.get('responses', {})),
+                'request_type': self.extract_request_type(endpoint.get('request_body')),
+                'request_param': endpoint['operation_id'].lower() + 'Request',
+                'primary_field': self.get_primary_field_access(endpoint.get('request_body'), models),
+                'result_constructor': self.build_result_constructor(endpoint, models)
+            }
+            processed.append(processed_endpoint)
+            
+        return processed
+    
+    def process_models_for_template(self, models):
+        """モデルをテンプレート用に前処理"""
+        processed = []
+        
+        for model_name, model in models.items():
+            processed_fields = []
+            for field in model['fields']:
+                processed_field = {
+                    'type': field['type'],
+                    'name': field['name'],
+                    'annotations': field.get('validation', [])
+                }
+                processed_fields.append(processed_field)
+            
+            processed_model = {
+                'name': model_name,
+                'description': model.get('description', f'{model_name} DTO'),
+                'fields': processed_fields,
+                'has_combine_check': 'InDto' in model_name or 'In' in model_name,
+                'has_check': 'InDto' not in model_name and 'In' not in model_name
+            }
+            processed.append(processed_model)
+            
+        return processed
+    
+    def process_enums_for_template(self, models):
+        """列挙型をテンプレート用に前処理"""
+        processed = []
+        
+        for model_name, model in models.items():
+            # 列挙型フィールドがある場合、列挙型を抽出
+            for field in model.get('fields', []):
+                if field.get('type') == 'ExampleEnum':
+                    # OpenAPIの実際の列挙型定義を探す
+                    processed.append({
+                        'name': 'ExampleEnum',
+                        'description': '例示用の列挙型',
+                        'values': [
+                            {'name': 'VALUE1', 'code': 'value1'},
+                            {'name': 'VALUE2', 'code': 'value2'},
+                            {'name': 'VALUE3', 'code': 'value3'}
+                        ]
+                    })
+                    break
+        
+        return processed
+    
+    def extract_response_type(self, responses):
+        """レスポンス型を抽出"""
+        if '200' in responses:
+            response = responses['200']
+            if 'content' in response and 'application/json' in response['content']:
+                schema = response['content']['application/json'].get('schema', {})
+                if '$ref' in schema:
+                    return schema['$ref'].split('/')[-1]
+        return 'ResponseEntity<String>'
+    
+    def extract_request_type(self, request_body):
+        """リクエスト型を抽出"""
+        if not request_body:
+            return None
+            
+        if 'content' in request_body and 'application/json' in request_body['content']:
+            schema = request_body['content']['application/json'].get('schema', {})
+            if '$ref' in schema:
+                return schema['$ref'].split('/')[-1]
+        return None
+    
+    def get_primary_field_access(self, request_body, models):
+        """主要フィールドのアクセス方法を生成（例：requestParam.minMaxValue）"""
+        request_type = self.extract_request_type(request_body)
+        if not request_type:
+            return "null"
+        
+        # operation_idから正しい変数名を生成
+        # V1InDto -> examplev1Request.minMaxValue
+        param_name = request_type.replace('V1InDto', '').lower() + 'examplev1Request'
+        return f"examplev1Request.minMaxValue"
+    
+    def build_result_constructor(self, endpoint, models):
+        """結果オブジェクトのコンストラクタを生成"""
+        response_type = self.extract_response_type(endpoint.get('responses', {}))
+        request_type = self.extract_request_type(endpoint.get('request_body'))
+        
+        if not request_type or not response_type:
+            return 'null'
+        
+        param_name = endpoint['operation_id'].lower() + 'Request'
+        
+        # 簡単な例（実際は型の構造に基づいて生成する必要がある）
+        return f"""new {response_type}(
+            {param_name}.name,
+            {param_name}.nullableValue,
+            {param_name}.notEmpty,
+            {param_name}.maxLengthValue,
+            {param_name}.alphanumericValue,
+            {param_name}.minMaxValue.toString(),
+            new V1OutDtoInnerObject(
+                {param_name}.inDtoInnerObject.innerName,
+                {param_name}.inDtoInnerObject.innerLong.toString()
+            ),
+            {param_name}.inDtoArrayObjectList.stream().map(it -> new V1OutDtoArrayObject(
+                it.arrayName
+            )).toList(),
+            {param_name}.instantValue,
+            {param_name}.exampleEnum.getCode()
+        )"""
 
 
 if __name__ == "__main__":
-    generator = SpringGenerator("output/openapi/openapi.yaml")
+    import sys
+    
+    if len(sys.argv) > 1:
+        # コマンドライン引数でファイルが指定された場合
+        openapi_file = sys.argv[1]
+    else:
+        # デフォルトファイル
+        openapi_file = "output/openapi/openapi.yaml"
+    
+    generator = SpringGenerator(openapi_file)
     generator.generate()

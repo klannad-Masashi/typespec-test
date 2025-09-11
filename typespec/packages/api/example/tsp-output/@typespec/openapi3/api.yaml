@@ -1,0 +1,172 @@
+openapi: 3.0.0
+info:
+  title: Complex Example API
+  version: 0.0.0
+tags: []
+paths:
+  /api/v1/example:
+    post:
+      operationId: exampleV1
+      description: Complex Example API v1 エンドポイント
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/V1OutDto'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/V1InDto'
+components:
+  schemas:
+    ExampleEnum:
+      type: string
+      enum:
+        - value1
+        - value2
+        - value3
+      description: 例示用の列挙型
+    V1InDto:
+      type: object
+      required:
+        - name
+        - maxLengthValue
+        - alphanumericValue
+        - minMaxValue
+        - inDtoInnerObject
+        - inDtoArrayObjectList
+        - instantValue
+        - exampleEnum
+      properties:
+        name:
+          type: string
+          pattern: ^[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\uF900-\uFAFF\u3400-\u4DBFa-zA-Z0-9\s!-/:-@\[-`{-~]+$
+          description: 名前（JIS X 0213 + 英数記号）
+        nullableValue:
+          type: string
+          description: NULL許可値
+        notEmpty:
+          type: string
+          description: 空文字不可値
+        maxLengthValue:
+          type: string
+          maxLength: 20
+          description: 最大長制限値
+        alphanumericValue:
+          type: string
+          pattern: ^[a-zA-Z0-9]+$
+          description: 英数字値
+        minMaxValue:
+          type: integer
+          format: int64
+          minimum: 5
+          maximum: 10
+          description: 最小最大値
+        inDtoInnerObject:
+          allOf:
+            - $ref: '#/components/schemas/V1InDtoInnerObject'
+          description: 内部オブジェクト
+        inDtoArrayObjectList:
+          type: array
+          items:
+            $ref: '#/components/schemas/V1InDtoArrayObject'
+          minItems: 2
+          maxItems: 10
+          description: 配列オブジェクトリスト
+        instantValue:
+          type: string
+          format: date-time
+          description: 日時値
+        exampleEnum:
+          allOf:
+            - $ref: '#/components/schemas/ExampleEnum'
+          description: 列挙型
+      description: API入力DTO
+    V1InDtoArrayObject:
+      type: object
+      required:
+        - arrayName
+      properties:
+        arrayName:
+          type: string
+          description: 配列名称
+      description: 入力用DTO配列オブジェクト
+    V1InDtoInnerObject:
+      type: object
+      required:
+        - innerName
+        - innerLong
+      properties:
+        innerName:
+          type: string
+          description: 内部名称
+        innerLong:
+          type: integer
+          format: int64
+          description: 内部数値
+      description: 入力用DTO内部オブジェクト
+    V1OutDto:
+      type: object
+      required:
+        - name
+        - maxLengthValue
+        - alphanumericValue
+        - minMaxValue
+        - inDtoInnerObject
+        - inDtoArrayObjectList
+      properties:
+        name:
+          type: string
+          description: 名前
+        nullableValue:
+          type: string
+          description: NULL許可値
+        notEmpty:
+          type: string
+          description: 空文字不可値
+        maxLengthValue:
+          type: string
+          description: 最大長制限値
+        alphanumericValue:
+          type: string
+          description: 英数字値
+        minMaxValue:
+          type: string
+          description: 最小最大値（文字列化）
+        inDtoInnerObject:
+          allOf:
+            - $ref: '#/components/schemas/V1OutDtoInnerObject'
+          description: 内部オブジェクト
+        inDtoArrayObjectList:
+          type: array
+          items:
+            $ref: '#/components/schemas/V1OutDtoArrayObject'
+          description: 配列オブジェクトリスト
+      description: API出力DTO
+    V1OutDtoArrayObject:
+      type: object
+      required:
+        - arrayName
+      properties:
+        arrayName:
+          type: string
+          description: 配列名称
+      description: 出力用DTO配列オブジェクト
+    V1OutDtoInnerObject:
+      type: object
+      required:
+        - innerName
+        - innerLong
+      properties:
+        innerName:
+          type: string
+          description: 内部名称
+        innerLong:
+          type: string
+          description: 内部数値（文字列化）
+      description: 出力用DTO内部オブジェクト

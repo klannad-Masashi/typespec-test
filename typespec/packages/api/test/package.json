@@ -1,7 +1,7 @@
 {
-  "name": "{{ package_name }}",
+  "name": "@typespec-gen/test",
   "version": "1.0.0",
-  "description": "{{ api_name.title() }} API TypeSpec定義",
+  "description": "Test API TypeSpec定義",
   "main": "main.tsp",
   "scripts": {
     "compile": "tsp compile .",

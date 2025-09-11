@@ -40,6 +40,35 @@
                                     </div>
                                 </div>
                             </div>
+                            
+                            <!-- 生成されるルート表示 -->
+                            <div class="row" id="api-route-display" style="display: none;">
+                                <div class="col-12">
+                                    <div class="alert alert-info mb-0">
+                                        <strong>生成されるAPIルート:</strong>
+                                        <div id="api-route-pattern" class="mt-1"></div>
+                                        <small class="text-muted mt-1 d-block">エンドポイント定義時は上記パターンを参考にしてください</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- エンドポイント定義 -->
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5>エンドポイント定義</h5>
+                            <button type="button" class="btn btn-success btn-sm" onclick="addEndpoint()">
+                                + エンドポイント追加
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="endpoints-container">
+                                <!-- エンドポイントがここに動的追加される -->
+                            </div>
+                            <div id="no-endpoints-message" class="text-muted text-center py-3">
+                                エンドポイントを追加してください
+                            </div>
                         </div>
                     </div>
 
@@ -79,6 +108,7 @@
 
                     <!-- 隠しフィールド -->
                     <input type="hidden" id="models_json" name="models_json" value="[]">
+                    <input type="hidden" id="endpoints_json" name="endpoints_json" value="[]">
 
                     <!-- 送信ボタン -->
                     <div class="d-grid gap-2">
@@ -150,6 +180,131 @@
             </div>
             <div class="col-md-2">
                 <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="removeField(this)">削除</button>
+            </div>
+            
+            <!-- 制限入力欄（数値・文字列型選択時のみ表示） -->
+            <div class="col-12 mt-2 field-constraints" style="display: none;">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small constraint-min-label">最小値</label>
+                        <input type="number" class="form-control form-control-sm field-min-value" placeholder="最小値">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small constraint-max-label">最大値</label>
+                        <input type="number" class="form-control form-control-sm field-max-value" placeholder="最大値">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- エンドポイントテンプレート -->
+    <template id="endpoint-template">
+        <div class="endpoint-item border rounded p-3 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">エンドポイント #<span class="endpoint-number"></span></h6>
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeEndpoint(this)">削除</button>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <label class="form-label">HTTPメソッド <span class="text-danger">*</span></label>
+                    <select class="form-select endpoint-method" required>
+                        <option value="">選択してください</option>
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                        <option value="PATCH">PATCH</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">パス <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text endpoint-base-path text-muted">/api/v1/[api名]</span>
+                        <input type="text" class="form-control endpoint-relative-path" placeholder="例: /users/{id}" required>
+                    </div>
+                    <div class="form-text">
+                        <small class="text-muted">フルパス: </small>
+                        <code class="endpoint-full-path text-primary"></code>
+                    </div>
+                    <div class="form-text">パスパラメータは {id} の形式で記述</div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">操作ID <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control endpoint-operation-id" placeholder="例: getUser" required>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label class="form-label">説明</label>
+                    <input type="text" class="form-control endpoint-description" placeholder="このエンドポイントの説明">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">リクエストモデル</label>
+                    <select class="form-select endpoint-request-model">
+                        <option value="">なし</option>
+                        <!-- モデル一覧が動的に追加される -->
+                    </select>
+                    <div class="form-text">POSTやPUT時のリクエストボディ</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">レスポンスモデル</label>
+                    <select class="form-select endpoint-response-model">
+                        <option value="">String (デフォルト)</option>
+                        <!-- モデル一覧が動的に追加される -->
+                    </select>
+                    <div class="form-text">成功時のレスポンス型</div>
+                </div>
+            </div>
+
+            <!-- エラーレスポンス設定 -->
+            <div class="error-responses-section">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label mb-0">エラーレスポンス</label>
+                    <button type="button" class="btn btn-outline-warning btn-sm" onclick="addErrorResponse(this)">+ エラー追加</button>
+                </div>
+                <div class="error-responses-container">
+                    <!-- エラーレスポンスがここに動的追加される -->
+                </div>
+                <div class="text-muted small">
+                    よく使用されるエラー: 400 (Bad Request), 401 (Unauthorized), 403 (Forbidden), 404 (Not Found), 500 (Internal Server Error)
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- エラーレスポンステンプレート -->
+    <template id="error-response-template">
+        <div class="error-response-item row mb-2 p-2 border rounded border-warning">
+            <div class="col-md-3">
+                <select class="form-select error-status-code">
+                    <option value="">ステータスコード選択</option>
+                    <option value="400">400 - Bad Request</option>
+                    <option value="401">401 - Unauthorized</option>
+                    <option value="403">403 - Forbidden</option>
+                    <option value="404">404 - Not Found</option>
+                    <option value="422">422 - Unprocessable Entity</option>
+                    <option value="500">500 - Internal Server Error</option>
+                    <option value="502">502 - Bad Gateway</option>
+                    <option value="503">503 - Service Unavailable</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <input type="text" class="form-control error-description" placeholder="エラーの説明" required>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select error-response-model">
+                    <option value="">String (デフォルト)</option>
+                    <!-- モデル一覧が動的に追加される -->
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="removeErrorResponse(this)">削除</button>
             </div>
         </div>
     </template>

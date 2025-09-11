@@ -24,6 +24,7 @@ from generator.scripts.spring_generator import SpringGenerator
 from generator.scripts.angular_generator import AngularGenerator
 from generator.scripts.java_enum_generator import JavaEnumGenerator
 from generator.scripts.junit_test_generator import JunitTestGenerator
+from generator.scripts.typespec_generator import TypeSpecGenerator
 
 # ログ設定
 logging.basicConfig(
@@ -91,7 +92,7 @@ def main():
     parser = argparse.ArgumentParser(description='TypeSpec Generator - マルチAPI対応版')
     parser.add_argument(
         '--target', 
-        choices=['all', 'csv', 'ddl', 'spring', 'angular', 'java-enum', 'junit-test'],
+        choices=['all', 'csv', 'ddl', 'spring', 'angular', 'java-enum', 'junit-test', 'typespec'],
         default='all',
         help='生成対象 (default: all)'
     )
@@ -110,10 +111,36 @@ def main():
         action='store_true',
         help='レガシー単一ファイルモード (openapi.yaml)'
     )
+    parser.add_argument(
+        '--api-name',
+        help='TypeSpec生成対象のAPI名 (typespecターゲット時のみ有効)'
+    )
     
     args = parser.parse_args()
     
     try:
+        # TypeSpec生成の場合はOpenAPIファイル検索をスキップ
+        if args.target == 'typespec':
+            # TypeSpec生成処理
+            logger.info("TypeSpec生成を開始...")
+            typespec_gen = TypeSpecGenerator(args.config)
+            
+            if args.api_name:
+                if args.api_name.lower() == 'all':
+                    result = typespec_gen.generate_all_apis()
+                else:
+                    result = typespec_gen.generate_api(args.api_name)
+            else:
+                logger.error("--api-name パラメータが必要です（例: --api-name user または --api-name all）")
+                return 1
+            
+            if result["success"]:
+                logger.info(f"TypeSpec生成完了: {result['message']}")
+                return 0
+            else:
+                logger.error(f"TypeSpec生成失敗: {result['error']}")
+                return 1
+        
         # レガシーモードの場合は従来の単一ファイルパスを使用
         if args.legacy_mode:
             args.input = 'output/openapi/openapi.yaml'

@@ -1,0 +1,17 @@
+{
+  "name": "@typespec-gen/api-example",
+  "version": "1.0.0", 
+  "description": "API Example TypeSpec定義",
+  "main": "main.tsp",
+  "scripts": {
+    "compile": "mkdir -p /app/output/openapi && tsp compile main.tsp --output-dir /app/output/openapi/example && mv /app/output/openapi/example/@typespec/openapi3/example.yaml /app/output/openapi/example.yaml && rm -rf /app/output/openapi/example 2>/dev/null || true",
+    "watch": "tsp compile . --watch"
+  },
+  "dependencies": {
+    "@typespec/compiler": "^0.66.0",
+    "@typespec/http": "^0.66.0",
+    "@typespec/rest": "^0.66.0",
+    "@typespec/openapi3": "^0.66.0",
+    "@typespec/openapi": "^0.66.0"
+  }
+}

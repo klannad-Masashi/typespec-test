@@ -1,21 +1,5 @@
 # TypeSpec開発環境用のDocker Compose設定
 services:
-  # PostgreSQLデータベース
-  postgres:
-    image: postgres:15-alpine
-    container_name: typespec-postgres
-    environment:
-      POSTGRES_DB: userdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./database/ddl:/docker-entrypoint-initdb.d
-    networks:
-      - typespec-network
-
   # TypeSpec専用環境
   typespec:
     build:
@@ -55,6 +39,7 @@ services:
       - "8000:8000"
     volumes:
       - .:/workspace
+      - ./web-service:/app
     environment:
       - WORKSPACE_PATH=/workspace
     networks:
@@ -62,6 +47,23 @@ services:
     depends_on:
       - typespec
       - generator
+      - web-db
+
+  # Web Service用データベース
+  web-db:
+    image: postgres:15-alpine
+    container_name: typespec-web-db
+    environment:
+      POSTGRES_DB: typespec-info
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./web-db/ddl:/docker-entrypoint-initdb.d
+    networks:
+      - typespec-network
 
   # Spring Boot API（将来的に追加）
   # api:
@@ -75,7 +77,7 @@ services:
   #   networks:
   #     - typespec-network
   #   depends_on:
-  #     - postgres
+  #     - web-db
 
   # Angular フロントエンド（将来的に追加）
   # frontend:

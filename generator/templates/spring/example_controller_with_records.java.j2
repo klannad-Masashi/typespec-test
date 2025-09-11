@@ -1,0 +1,192 @@
+package {{ config.spring.base_package }}.{{ api_name }}api.controller;
+
+import org.springframework.web.bind.annotation.*;
+import javax.validation.Valid;
+import java.util.List;
+import java.time.Instant;
+
+/**
+ * {{ controller_name }}
+ * TypeSpecから自動生成されたAPIコントローラー
+ * 生成日時: {{ generated_at }}
+ */
+@RestController
+public class {{ controller_name }} {
+
+    private final {{ usecase_name }} {{ usecase_var_name }};
+
+    public {{ controller_name }}({{ usecase_name }} {{ usecase_var_name }}) {
+        this.{{ usecase_var_name }} = {{ usecase_var_name }};
+    }
+
+    @PostMapping("/api/v1/example")
+    public V1OutDto v1(@RequestBody @Valid V1InDto v1InDto) {
+
+        // 関連チェック
+        v1InDto.combineCheck();
+
+        // ユースケース実行
+        final var usecaseResult = {{ usecase_var_name }}.exec(v1InDto.minMaxValue);
+
+        // 後で消す
+        usecaseResult.applicationClassificationList().forEach(it -> {
+            it.applicationClassificationId();
+            it.applicationTypeDiv();
+            it.applicationClassificationName();
+            it.applicationClassificationDescription();
+            it.sortControl();
+            it.lastUpdateTimestamp();
+        });
+
+        final var result = new V1OutDto(
+            v1InDto.name,
+            v1InDto.nullableValue,
+            v1InDto.notEmpty,
+            v1InDto.maxLengthValue,
+            v1InDto.alphanumericValue,
+            v1InDto.minMaxValue.toString(),
+            new V1OutDtoInnerObject(
+                v1InDto.inDtoInnerObject.innerName,
+                v1InDto.inDtoInnerObject.innerLong.toString()
+            ),
+            v1InDto.inDtoArrayObjectList.stream().map(it -> new V1OutDtoArrayObject(
+                it.arrayName
+            )).toList(),
+            v1InDto.instantValue,
+            v1InDto.exampleEnum.getCode()
+        );
+
+        result.check();
+        return result;
+    }
+
+
+    // 入力用DTO
+    public record V1InDto(
+        @UnitCheckString(
+            pattern = UnitCheckString.Type.jisX0213withAlphaNumericSymbol
+        )
+        String name,
+
+        @UnitCheckString(
+            isRequired = false,
+            pattern = UnitCheckString.Type.all
+        )
+        String nullableValue,
+
+        @UnitCheckString(
+            isRequired = false,
+            pattern = UnitCheckString.Type.all
+        )
+        String notEmpty,
+
+        @UnitCheckString(
+            maxLength = 20,
+            pattern = UnitCheckString.Type.all
+        )
+        String maxLengthValue,
+
+        @UnitCheckString(
+            pattern = UnitCheckString.Type.alphanumericPattern
+        )
+        String alphanumericValue,
+
+        @UnitCheckNumber(
+            minLength = 5,
+            maxLength = 10
+        )
+        Long minMaxValue,
+
+        @UnitCheckObject
+        V1InDtoInnerObject inDtoInnerObject,
+
+        @UnitCheckArray(
+            minLength = 2,
+            maxLength = 10
+        )
+        List<V1InDtoArrayObject> inDtoArrayObjectList,
+
+        @UnitCheckInstant
+        Instant instantValue,
+
+        @UnitCheckEnum
+        ExampleEnum exampleEnum
+    ) {
+
+        public void combineCheck() {
+            // TODO: 開発者が実装する
+        }
+    }
+
+    public record V1InDtoInnerObject(
+        @UnitCheckString(
+            pattern = UnitCheckString.Type.all
+        )
+        String innerName,
+        @UnitCheckNumber
+        Long innerLong
+    ) {
+    }
+
+    public record V1InDtoArrayObject(
+        @UnitCheckString(
+            pattern = UnitCheckString.Type.all
+        )
+        String arrayName
+    ) {
+    }
+
+    // 出力用DTO
+    public record V1OutDto(
+        String name,
+        String nullableValue,
+        String notEmpty,
+        String maxLengthValue,
+        String alphanumericValue,
+        String minMaxValue,
+        V1OutDtoInnerObject inDtoInnerObject,
+        List<V1OutDtoArrayObject> inDtoArrayObjectList,
+        Instant instantValue,
+        String exampleEnum
+    ) {
+        public void check() {
+            // TODO: 開発者が実装する
+        }
+    }
+
+    public record V1OutDtoInnerObject(
+        String innerName,
+        String innerLong
+    ) {
+        public void check() {
+            // TODO: 開発者が実装する
+        }
+    }
+
+    public record V1OutDtoArrayObject(
+        String arrayName
+    ) {
+        public void check() {
+            // TODO: 開発者が実装する
+        }
+    }
+
+    /**
+     * 例示用の列挙型
+     */
+    public enum ExampleEnum {
+        VALUE1("value1"),
+        VALUE2("value2"),
+        VALUE3("value3");
+
+        private final String code;
+
+        ExampleEnum(String code) {
+            this.code = code;
+        }
+
+        public String getCode() {
+            return code;
+        }
+    }
+}

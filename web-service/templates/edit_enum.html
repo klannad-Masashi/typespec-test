@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enum編集 - TypeSpec Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Enum編集</h1>
+                    <div>
+                        <a href="/enums" class="btn btn-outline-secondary me-2">← 一覧に戻る</a>
+                        <a href="/" class="btn btn-outline-secondary">← トップに戻る</a>
+                    </div>
+                </div>
+
+                <form id="editEnumForm">
+                    <!-- Enum編集 -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Enum編集</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="enums-container">
+                                <!-- Enumデータがここにロードされる -->
+                            </div>
+                            <div id="loading-message" class="text-muted text-center py-4">
+                                データを読み込み中...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 送信ボタン -->
+                    <div class="d-grid gap-2 mb-4" id="submit-section" style="display: none;">
+                        <button type="submit" class="btn btn-primary btn-lg">更新</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 処理結果モーダル -->
+    <div class="modal fade" id="resultModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="resultModalTitle">処理結果</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="resultContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // EnumIDを取得
+        const enumId = {{ enum_id }};
+        let enumCount = 0;
+
+        // ページ読み込み時にEnumデータを取得
+        document.addEventListener('DOMContentLoaded', function() {
+            loadEnumData();
+        });
+        
+        // Enumデータを読み込み
+        async function loadEnumData() {
+            try {
+                const response = await fetch(`/api/enums/${enumId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    populateEnumData(result.enum);
+                } else {
+                    document.getElementById('loading-message').innerHTML = 
+                        '<div class="text-danger text-center py-3">Enumの読み込みに失敗しました。</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load enum data:', error);
+                document.getElementById('loading-message').innerHTML = 
+                    '<div class="text-danger text-center py-3">データの読み込み中にエラーが発生しました。</div>';
+            }
+        }
+
+        // Enumデータを画面に設定
+        function populateEnumData(enumData) {
+            document.getElementById('loading-message').style.display = 'none';
+            document.getElementById('submit-section').style.display = '';
+            
+            // Enum1つを追加
+            addEnum();
+            
+            const enumDiv = document.getElementById('enum-1');
+            enumDiv.querySelector('[name^="enum_name_"]').value = enumData.name;
+            enumDiv.querySelector('[name^="enum_description_"]').value = enumData.description || '';
+            
+            // 既存の値を削除（初期値が1つあるため）
+            const valuesContainer = enumDiv.querySelector('[id^="enum-values-"]');
+            valuesContainer.innerHTML = '';
+            
+            // Enum値を設定
+            enumData.values.forEach((value, index) => {
+                const valueDiv = document.createElement('div');
+                valueDiv.className = 'input-group mb-2';
+                valueDiv.innerHTML = `
+                    <input type="text" class="form-control" name="enum_value_1_${index + 1}" placeholder="例: ACTIVE" value="${value.name}" required>
+                    <input type="text" class="form-control" name="enum_value_description_1_${index + 1}" placeholder="値の説明（オプション）" value="${value.description || ''}">
+                    <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove();">削除</button>
+                `;
+                valuesContainer.appendChild(valueDiv);
+            });
+        }
+
+        // Enumを追加する関数
+        function addEnum() {
+            enumCount++;
+            const enumsContainer = document.getElementById('enums-container');
+            
+            const enumDiv = document.createElement('div');
+            enumDiv.className = 'border rounded p-3 mb-3';
+            enumDiv.id = `enum-${enumCount}`;
+            enumDiv.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Enum ${enumCount}</h6>
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="addEnumValue(${enumCount})">+ 値追加</button>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Enum名</label>
+                        <input type="text" class="form-control" name="enum_name_${enumCount}" placeholder="例: Status" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">説明</label>
+                        <input type="text" class="form-control" name="enum_description_${enumCount}" placeholder="例: ステータスを表すEnum">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Enum値</label>
+                    <div id="enum-values-${enumCount}">
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" name="enum_value_${enumCount}_1" placeholder="例: ACTIVE" required>
+                            <input type="text" class="form-control" name="enum_value_description_${enumCount}_1" placeholder="値の説明（オプション）">
+                            <button type="button" class="btn btn-outline-success" onclick="addEnumValue(${enumCount})">+</button>
+                        </div>
+                    </div>
+                    <small class="form-text text-muted">Enum値は大文字で記述してください（例: ACTIVE, INACTIVE）</small>
+                </div>
+            `;
+            
+            enumsContainer.appendChild(enumDiv);
+        }
+
+        // Enum値を追加する関数
+        function addEnumValue(enumId) {
+            const valuesContainer = document.getElementById(`enum-values-${enumId}`);
+            const valueCount = valuesContainer.children.length + 1;
+            
+            const valueDiv = document.createElement('div');
+            valueDiv.className = 'input-group mb-2';
+            valueDiv.innerHTML = `
+                <input type="text" class="form-control" name="enum_value_${enumId}_${valueCount}" placeholder="例: INACTIVE" required>
+                <input type="text" class="form-control" name="enum_value_description_${enumId}_${valueCount}" placeholder="値の説明（オプション）">
+                <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove();">-</button>
+            `;
+            
+            valuesContainer.appendChild(valueDiv);
+        }
+
+        // フォーム送信処理
+        document.getElementById('editEnumForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const enumsContainer = document.getElementById('enums-container');
+            const enumDivs = enumsContainer.querySelectorAll('[id^="enum-"]');
+            
+            let enumData = null;
+            enumDivs.forEach(enumDiv => {
+                const enumIdStr = enumDiv.id.split('-')[1];
+                const enumName = formData.get(`enum_name_${enumIdStr}`);
+                const enumDescription = formData.get(`enum_description_${enumIdStr}`);
+                
+                if (enumName) {
+                    const values = [];
+                    let valueIndex = 1;
+                    
+                    while (true) {
+                        const valueName = formData.get(`enum_value_${enumIdStr}_${valueIndex}`);
+                        if (!valueName) break;
+                        
+                        const valueDescription = formData.get(`enum_value_description_${enumIdStr}_${valueIndex}`);
+                        values.push({
+                            name: valueName,
+                            description: valueDescription || ""
+                        });
+                        valueIndex++;
+                    }
+                    
+                    enumData = {
+                        name: enumName,
+                        description: enumDescription || "",
+                        values: values
+                    };
+                }
+            });
+            
+            try {
+                const response = await fetch(`/api/enums/${enumId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(enumData)
+                });
+                
+                const result = await response.json();
+                
+                // 結果をモーダルで表示
+                document.getElementById('resultModalTitle').textContent = result.success ? '成功' : 'エラー';
+                document.getElementById('resultContent').innerHTML = result.success 
+                    ? `<div class="alert alert-success">${result.message}</div>`
+                    : `<div class="alert alert-danger">エラー: ${result.error}</div>`;
+                
+                showResultModal();
+                
+                if (result.success) {
+                    // 成功した場合は一覧に戻る
+                    setTimeout(() => {
+                        window.location.href = '/enums';
+                    }, 2000);
+                }
+            } catch (error) {
+                document.getElementById('resultModalTitle').textContent = 'エラー';
+                document.getElementById('resultContent').innerHTML = `<div class="alert alert-danger">通信エラー: ${error.message}</div>`;
+                showResultModal();
+            }
+        });
+
+        // モーダル表示用の関数
+        function showResultModal() {
+            const modalElement = document.getElementById('resultModal');
+            let modal = bootstrap.Modal.getInstance(modalElement);
+            
+            if (!modal) {
+                modal = new bootstrap.Modal(modalElement);
+            }
+            
+            modal.show();
+        }
+    </script>
+</body>
+</html>

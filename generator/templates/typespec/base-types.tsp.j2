@@ -1,0 +1,44 @@
+import "@typespec/http";
+import "@typespec/rest";
+
+using TypeSpec.Http;
+using TypeSpec.Rest;
+
+namespace CommonModels;
+
+// 共通モデル定義
+// このファイルにはプロジェクト全体で使用する共通の型定義を記述します
+
+{% for model in models %}
+/**
+ * {{ model.description }}
+ */
+model {{ model.name }} {
+{% for field in model.fields %}
+  {% if field.description %}
+  /**
+   * {{ field.description }}
+   */
+  {% endif %}
+  {% for validation_key, validation_value in field.validations.items() %}
+  {% if validation_key == 'minLength' %}
+  @minLength({{ validation_value }})
+  {% elif validation_key == 'maxLength' %}
+  @maxLength({{ validation_value }})
+  {% elif validation_key == 'minimum' %}
+  @minValue({{ validation_value }})
+  {% elif validation_key == 'maximum' %}
+  @maxValue({{ validation_value }})
+  {% elif validation_key == 'pattern' %}
+  @pattern("{{ validation_value }}")
+  {% elif validation_key == 'format' and validation_value == 'email' %}
+  @format("email")
+  {% elif validation_key == 'format' and validation_value == 'uri' %}
+  @format("uri")
+  {% endif %}
+  {% endfor %}
+  {{ field.name }}{% if not field.required %}?{% endif %}: {{ field.type_mapped }};
+{% endfor %}
+}
+
+{% endfor %}
