@@ -26,6 +26,7 @@ public class ExampleController {
             it.lastUpdateTimestamp();
         });
 
+        // TODO: 開発者が実装する
         final var result = new V1OutDto(
             v1InDto.name,
             v1InDto.nullableValue,
