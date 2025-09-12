@@ -1,10 +1,14 @@
 {
-  "name": "@typespec-gen/api-example",
+  "name": "@typespec-gen/example-api",
   "version": "1.0.0", 
   "description": "API Example TypeSpec定義",
   "main": "main.tsp",
   "scripts": {
-    "compile": "mkdir -p /app/output/openapi && tsp compile main.tsp --output-dir /app/output/openapi/example && mv /app/output/openapi/example/@typespec/openapi3/example.yaml /app/output/openapi/example.yaml && rm -rf /app/output/openapi/example 2>/dev/null || true",
+    "make-dir": "mkdir -p /app/output/openapi",
+    "tsp-compile": "tsp compile main.tsp --output-dir /app/output/openapi/example",
+    "move-asset": "mv /app/output/openapi/example/@typespec/openapi3/example.yaml /app/output/openapi/example.yaml",
+    "cleanup": "rm -rf /app/output/openapi/example 2>/dev/null || true",
+    "compile": "npm run make-dir && npm run tsp-compile && npm run move-asset && npm run cleanup",
     "watch": "tsp compile . --watch"
   },
   "dependencies": {
