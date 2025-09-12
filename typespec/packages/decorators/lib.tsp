@@ -34,3 +34,19 @@ namespace TypeSpecGen.Java;
 
 /** Java Enum生成マーカー */
 extern dec makeEnumJava(target: Enum);
+
+namespace TypeSpecGen.Validation;
+
+// バリデーション系デコレーター
+/** 文字列バリデーション */
+extern dec unitCheckString(target: ModelProperty, pattern?: valueof string);
+/** 数値バリデーション */
+extern dec unitCheckNumber(target: ModelProperty);
+/** オブジェクトバリデーション */
+extern dec unitCheckObject(target: ModelProperty);
+/** 配列バリデーション */
+extern dec unitCheckArray(target: ModelProperty);
+/** 日時バリデーション */
+extern dec unitCheckInstant(target: ModelProperty);
+/** 列挙型バリデーション */
+extern dec unitCheckEnum(target: ModelProperty);

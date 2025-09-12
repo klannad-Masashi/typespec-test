@@ -1,6 +1,7 @@
 import "@typespec/http";
 import "@typespec/rest";
 import "@typespec/openapi";
+import "@typespec-gen/decorators";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
@@ -52,34 +53,40 @@ model V1InDto {
   /**
    * 名前（JIS X 0213 + 英数記号）
    */
+  @unitCheckString("jisX0213withAlphaNumericSymbol")
   @pattern("^[\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FAF\\uF900-\\uFAFF\\u3400-\\u4DBFa-zA-Z0-9\\s!-/:-@\\[-`{-~]+$")
   name: string;
   
   /**
    * NULL許可値
    */
+  @unitCheckString()
   nullableValue?: string;
   
   /**
    * 空文字不可値
    */
+  @unitCheckString()
   notEmpty?: string;
   
   /**
    * 最大長制限値
    */
+  @unitCheckString()
   @maxLength(20)
   maxLengthValue: string;
   
   /**
    * 英数字値
    */
+  @unitCheckString("alphanumericPattern")
   @pattern("^[a-zA-Z0-9]+$")
   alphanumericValue: string;
   
   /**
    * 最小最大値
    */
+  @unitCheckNumber
   @minValue(5)
   @maxValue(10)
   minMaxValue: int64;
@@ -87,11 +94,13 @@ model V1InDto {
   /**
    * 内部オブジェクト
    */
+  @unitCheckObject
   inDtoInnerObject: V1InDtoInnerObject;
   
   /**
    * 配列オブジェクトリスト
    */
+  @unitCheckArray
   @minItems(2)
   @maxItems(10)
   inDtoArrayObjectList: V1InDtoArrayObject[];
@@ -99,11 +108,13 @@ model V1InDto {
   /**
    * 日時値
    */
+  @unitCheckInstant
   instantValue: utcDateTime;
   
   /**
    * 列挙型
    */
+  @unitCheckEnum
   exampleEnum: ExampleEnum;
 }
 

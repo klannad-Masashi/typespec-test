@@ -75,22 +75,27 @@ export function $makeEnumJava(ctx: DecoratorContext, target: Enum) {
   setExtension(ctx.program, target, "x-makeEnumJava", true);
 }
 
-// IDE 用（任意）
-export const $decorators = {
-  "TypeSpecGen.DDL": {
-    makeDDL: $makeDDL,
-    tableName: $tableName,
-    // pk: $pk,           // コメントアウト（標準デコレータとの衝突回避）
-    // unique: $unique,   // コメントアウト（標準デコレータとの衝突回避）
-    notAddForDDL: $notAddForDDL,
-    lookupTable: $lookupTable,
-    lookupColumn: $lookupColumn,
-    checkIn: $checkIn,
-    dbEnum: $dbEnum,
-    length: $length,
-    precisionScale: $precisionScale,
-  },
-  "TypeSpecGen.Java": {
-    makeEnumJava: $makeEnumJava,
-  },
-};
+// ===== バリデーション系 =====
+export function $unitCheckString(ctx: DecoratorContext, target: ModelProperty, pattern?: string) {
+  setExtension(ctx.program, target, "x-unitCheckString", pattern || "all");
+}
+
+export function $unitCheckNumber(ctx: DecoratorContext, target: ModelProperty) {
+  setExtension(ctx.program, target, "x-unitCheckNumber", true);
+}
+
+export function $unitCheckObject(ctx: DecoratorContext, target: ModelProperty) {
+  setExtension(ctx.program, target, "x-unitCheckObject", true);
+}
+
+export function $unitCheckArray(ctx: DecoratorContext, target: ModelProperty) {
+  setExtension(ctx.program, target, "x-unitCheckArray", true);
+}
+
+export function $unitCheckInstant(ctx: DecoratorContext, target: ModelProperty) {
+  setExtension(ctx.program, target, "x-unitCheckInstant", true);
+}
+
+export function $unitCheckEnum(ctx: DecoratorContext, target: ModelProperty) {
+  setExtension(ctx.program, target, "x-unitCheckEnum", true);
+}
