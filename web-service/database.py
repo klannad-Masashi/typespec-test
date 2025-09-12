@@ -6,7 +6,7 @@ import os
 # データベース接続設定
 DATABASE_URL = os.getenv(
     "DATABASE_URL", 
-    "postgresql://postgres:postgres@typespec-web-db:5432/typespec-info"
+    "postgresql://postgres:postgres@web-db:5432/typespec-info"
 )
 
 # SQLAlchemy エンジン作成

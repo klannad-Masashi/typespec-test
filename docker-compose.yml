@@ -32,9 +32,9 @@ services:
   # TypeSpec Web Service
   web-service:
     build:
-      context: ./web-service
-      dockerfile: Dockerfile
-    container_name: typespec-web-service
+      context: .
+      dockerfile: web-service/Dockerfile
+    container_name: web-service
     ports:
       - "8000:8000"
     volumes:
@@ -52,7 +52,7 @@ services:
   # Web Service用データベース
   web-db:
     image: postgres:15-alpine
-    container_name: typespec-web-db
+    container_name: web-db
     environment:
       POSTGRES_DB: typespec-info
       POSTGRES_USER: postgres
