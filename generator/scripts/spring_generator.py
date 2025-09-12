@@ -107,7 +107,7 @@ class SpringGenerator:
         
         # デフォルトパッケージ名を生成
         base = config.get('spring', {}).get('base_package', 'com.example.api')
-        return f"{base}.{api_name}"
+        return f"{base}"
     
     def get_api_output_dir(self, api_name, package_name):
         """API別の出力ディレクトリを取得"""
