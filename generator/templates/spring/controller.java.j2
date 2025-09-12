@@ -1,67 +1,107 @@
-package {{ config.spring.base_package }}.{{ config.spring.controller_package }};
+package {{ config.spring.base_package }}.{{ api_name }}api.controller;
 
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
-import org.springframework.beans.factory.annotation.Autowired;
-{% if config.features.swagger %}
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-{% endif %}
-{% if config.features.validation %}
 import javax.validation.Valid;
-{% endif %}
 import java.util.List;
-
-{% for model_name, model in models.items() %}
-import {{ model.package }}.{{ model_name }};
-{% endfor %}
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.util.UUID;
 
 /**
+ * {{ controller_name }}
  * TypeSpecから自動生成されたAPIコントローラー
  * 生成日時: {{ generated_at }}
  */
 @RestController
-@RequestMapping("/api")
-{% if config.features.swagger %}
-@Tag(name = "User API", description = "ユーザー管理API")
-{% endif %}
 public class {{ controller_name }} {
 
-    // TODO: サービスクラスの注入
-    // @Autowired
-    // private {{ service_name }} {{ service_name.lower() }};
+    private final {{ usecase_name }} {{ usecase_var_name }};
 
-{% for endpoint_name, endpoint in endpoints.items() %}
-    /**
-     * {{ endpoint.description }}
-     */
-    @{{ endpoint.method.title() }}Mapping("{{ endpoint.path }}")
-{% if config.features.swagger %}
-    @Operation(summary = "{{ endpoint.summary }}", description = "{{ endpoint.description }}")
-{% endif %}
-    public ResponseEntity<{{ endpoint.response_type }}> {{ endpoint.method_name }}(
-        {%- for param in endpoint.parameters -%}
-        {%- if param.in == 'path' -%}
-        @PathVariable {{ param.type }} {{ param.name }}
-        {%- elif param.in == 'query' -%}
-        @RequestParam{{ '(required = false)' if not param.required else '' }} {{ param.type }} {{ param.name }}
-        {%- endif -%}
-        {%- if not loop.last %}, {% endif -%}
-        {%- endfor -%}
-        {%- if endpoint.request_body -%}
-        {%- if endpoint.parameters %}, {% endif -%}
-        {% if config.features.validation %}@Valid {% endif %}@RequestBody {{ endpoint.request_body.type }} {{ endpoint.request_body.name }}
+    public {{ controller_name }}({{ usecase_name }} {{ usecase_var_name }}) {
+        this.{{ usecase_var_name }} = {{ usecase_var_name }};
+    }
+
+{% for endpoint in processed_endpoints %}
+    @{{ endpoint.spring_method }}Mapping("{{ endpoint.path }}")
+    public {{ endpoint.response_type }} {{ endpoint.method_name }}(
+        {%- if endpoint.request_type -%}
+        @RequestBody @Valid {{ endpoint.request_type }} {{ endpoint.request_param }}
         {%- endif -%}
     ) {
-        // TODO: 実装
-        {% if endpoint.method == 'POST' %}
-        return ResponseEntity.status(HttpStatus.CREATED).build();
-        {% elif endpoint.method == 'DELETE' %}
-        return ResponseEntity.noContent().build();
+        {% if endpoint.request_type %}
+        // 関連チェック
+        {{ endpoint.request_param }}.combineCheck();
+
+        // ユースケース実行
+        final var usecaseResult = {{ usecase_var_name }}.exec({{ endpoint.primary_field }});
+
+        // 後で消す（ユースケース結果の処理例）
+        usecaseResult.applicationClassificationList().forEach(it -> {
+            it.applicationClassificationId();
+            it.applicationTypeDiv();
+            it.applicationClassificationName();
+            it.applicationClassificationDescription();
+            it.sortControl();
+            it.lastUpdateTimestamp();
+        });
+
+        final var result = {{ endpoint.result_constructor }};
+
+        result.check();
+        return result;
         {% else %}
-        return ResponseEntity.ok().build();
+        // TODO: 実装（リクエストボディなし）
+        return ResponseEntity.ok("{{ endpoint.method_name }} is working!");
         {% endif %}
+    }
+{% endfor %}
+
+{% for model in processed_models %}
+    // {{ model.description }}
+    public record {{ model.name }}(
+{% for field in model.fields %}
+{% for annotation in field.annotations %}
+        {{ annotation }}
+{% endfor %}
+        {{ field.type }} {{ field.name }}{% if not loop.last %},
+{% else %}
+
+{% endif %}
+{% endfor %}
+    ) {
+        {% if model.has_combine_check %}
+        public void combineCheck() {
+            // TODO: 開発者が実装する
+        }
+        {% endif %}
+        {% if model.has_check %}
+        public void check() {
+            // TODO: 開発者が実装する
+        }
+        {% endif %}
+    }
+
+{% endfor %}
+
+{% for enum in processed_enums %}
+    /**
+     * {{ enum.description }}
+     */
+    public enum {{ enum.name }} {
+{% for value in enum.values %}
+        {{ value.name }}("{{ value.code }}"){% if not loop.last %},{% endif %}
+{% endfor %};
+
+        private final String code;
+
+        {{ enum.name }}(String code) {
+            this.code = code;
+        }
+
+        public String getCode() {
+            return code;
+        }
     }
 
 {% endfor %}

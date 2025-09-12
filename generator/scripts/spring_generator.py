@@ -358,7 +358,7 @@ public class UserController {
         
         # example APIの場合は特別なテンプレート（record内包）を使用
         if api_name == "example":
-            template = self.jinja_env.get_template("example_controller_with_records_dynamic.java.j2")
+            template = self.jinja_env.get_template("controller.java.j2")
             
             # テンプレート用データを準備
             controller_name = "ExampleController"
