@@ -12,7 +12,7 @@ from jinja2 import Environment, FileSystemLoader
 from sqlalchemy.orm import Session
 
 from generator.database import get_db
-from generator.models.database_models import Api, Model, Field, FieldValidation, Endpoint, ErrorResponse
+from generator.models.database_models import Api, Model, ModelValue, ModelValueValidation, Endpoint, ErrorResponse
 
 logger = logging.getLogger(__name__)
 
