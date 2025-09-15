@@ -7,6 +7,9 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.util.UUID;
+{% for enum in processed_enums %}
+import {{ config.spring.base_package }}.entity.item.{{ enum.name }};
+{% endfor %}
 
 /**
  * {{ controller_name }}
@@ -99,25 +102,4 @@ public class {{ controller_name }} {
 
 {% endfor %}
 
-{% for enum in processed_enums %}
-    /**
-     * {{ enum.description }}
-     */
-    public enum {{ enum.name }} {
-{% for value in enum.values %}
-        {{ value.name }}("{{ value.code }}"){% if not loop.last %},{% endif %}
-{% endfor %};
-
-        private final String code;
-
-        {{ enum.name }}(String code) {
-            this.code = code;
-        }
-
-        public String getCode() {
-            return code;
-        }
-    }
-
-{% endfor %}
 }

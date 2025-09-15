@@ -90,21 +90,35 @@ class SpringGenerator:
         package_path = package_name.replace('.', '/')
         return self.base_output_dir / "main" / "java" / package_path
 
+    def get_entity_output_dir(self, api_name, package_name):
+        """API別のentity出力ディレクトリを取得"""
+        package_path = package_name.replace('.', '/')
+        return self.base_output_dir / "main" / "java" / package_path / "entity" / "item"
+
     
         
     def extract_models_and_paths_for_api(self, api_name, openapi_spec, config):
         """API別にモデルとAPIパスを抽出"""
         # スキーマからモデルを抽出
         models = {}
+        enums = {}
         schemas = openapi_spec.get('components', {}).get('schemas', {})
-        
+
         for schema_name, schema_def in schemas.items():
-            models[schema_name] = self.convert_schema_to_model(schema_name, schema_def, api_name, config)
-            
+            # enum型かどうかを判定
+            if schema_def.get('type') == 'string' and 'enum' in schema_def:
+                enums[schema_name] = {
+                    'name': schema_name,
+                    'description': schema_def.get('description', f'{schema_name} 列挙型'),
+                    'values': [{'name': val.upper(), 'value': val} for val in schema_def['enum']]
+                }
+            else:
+                models[schema_name] = self.convert_schema_to_model(schema_name, schema_def, api_name, config)
+
         # パスからAPIエンドポイントを抽出
         endpoints = {}
         paths = openapi_spec.get('paths', {})
-        
+
         for path, path_def in paths.items():
             for method, method_def in path_def.items():
                 if method.upper() in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']:
@@ -112,8 +126,8 @@ class SpringGenerator:
                     endpoint_data = self.convert_path_to_endpoint(path, method, method_def)
                     endpoint_data['api_name'] = api_name
                     endpoints[endpoint_key] = endpoint_data
-                    
-        return models, endpoints
+
+        return models, endpoints, enums
         
     def convert_schema_to_model(self, schema_name, schema_def, api_name, config):
         """OpenAPIスキーマをJavaモデルに変換"""
@@ -255,7 +269,7 @@ class SpringGenerator:
         
     
         
-    def generate_api_controller(self, api_name, models, endpoints, config, package_name):
+    def generate_api_controller(self, api_name, models, endpoints, config, package_name, enums):
         """API別Controllerクラスを生成"""
 
         # record内包型テンプレートを使用（全API共通）
@@ -267,7 +281,7 @@ class SpringGenerator:
         # 動的テンプレート用の前処理済みデータを生成
         processed_endpoints = self.process_endpoints_for_template(endpoints, models)
         processed_models = self.process_models_for_template(models)
-        processed_enums = self.process_enums_for_template(models)
+        processed_enums = list(enums.values()) if enums else []
         processed_usecases = self.process_usecases_for_template(endpoints)
 
         return template.render(
@@ -289,6 +303,26 @@ class SpringGenerator:
         template = self.jinja_env.get_template("dto.java.j2")
         return template.render(
             model=model,
+            generated_at=datetime.now().isoformat()
+        )
+
+    def generate_enum(self, enum_data, package_name):
+        """Enumクラスを生成（既存のenumテンプレートを使用）"""
+        # Jinja2テンプレートディレクトリをjavaに変更してenumテンプレートを取得
+        java_template_dir = Path(__file__).parent.parent / "templates" / "java"
+        java_env = Environment(
+            loader=FileSystemLoader(str(java_template_dir)),
+            trim_blocks=True,
+            lstrip_blocks=True
+        )
+        template = java_env.get_template("enum.java.j2")
+        return template.render(
+            package_name=f"{package_name}.entity.item",
+            class_name=enum_data['name'],
+            description=enum_data['description'],
+            original_name=enum_data['name'],
+            api_name="generated",
+            enum_values=enum_data['values'],
             generated_at=datetime.now().isoformat()
         )
     
@@ -356,7 +390,7 @@ class SpringGenerator:
                 logger.info(f"{api_name} APIのSpring Bootコードを生成中...")
                 
                 # モデルとエンドポイントを抽出
-                models, endpoints = self.extract_models_and_paths_for_api(api_name, openapi_spec, config)
+                models, endpoints, enums = self.extract_models_and_paths_for_api(api_name, openapi_spec, config)
                 
                 if not models:
                     logger.warning(f"{api_name} API: モデル定義が見つかりませんでした")
@@ -374,7 +408,7 @@ class SpringGenerator:
                 controller_dir.mkdir(exist_ok=True)
                 
                 controller_name = f"{api_name.title()}Controller"
-                controller_content = self.generate_api_controller(api_name, models, endpoints, config, package_name)
+                controller_content = self.generate_api_controller(api_name, models, endpoints, config, package_name, enums)
                 controller_file = controller_dir / f"{controller_name}.java"
                 
                 with open(controller_file, 'w', encoding='utf-8') as f:
@@ -384,14 +418,27 @@ class SpringGenerator:
                 # DTOクラスを生成
                 dto_dir = output_dir / config['spring']['dto_package']
                 dto_dir.mkdir(exist_ok=True)
-                
+
                 for model_name, model in models.items():
                     dto_content = self.generate_dto(model_name, model, config)
                     dto_file = dto_dir / f"{model_name}.java"
-                    
+
                     with open(dto_file, 'w', encoding='utf-8') as f:
                         f.write(dto_content)
                     logger.info(f"DTOを生成しました: {dto_file}")
+
+                # Enumクラスを分離して生成
+                if enums:
+                    entity_dir = self.get_entity_output_dir(api_name, package_name)
+                    entity_dir.mkdir(parents=True, exist_ok=True)
+
+                    for enum_name, enum_data in enums.items():
+                        enum_content = self.generate_enum(enum_data, package_name)
+                        enum_file = entity_dir / f"{enum_data['name']}.java"
+
+                        with open(enum_file, 'w', encoding='utf-8') as f:
+                            f.write(enum_content)
+                        logger.info(f"Enumを生成しました: {enum_file}")
                     
                 # メタデータを収集
                 controller_metadata = self.collect_controller_metadata(api_name, endpoints, package_name, config)
