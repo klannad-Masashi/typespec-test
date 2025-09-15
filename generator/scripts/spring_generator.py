@@ -306,7 +306,7 @@ class SpringGenerator:
             generated_at=datetime.now().isoformat()
         )
 
-    def generate_enum(self, enum_data, package_name):
+    def generate_enum(self, enum_data, package_name, config):
         """Enumクラスを生成（既存のenumテンプレートを使用）"""
         # Jinja2テンプレートディレクトリをjavaに変更してenumテンプレートを取得
         java_template_dir = Path(__file__).parent.parent / "templates" / "java"
@@ -323,6 +323,7 @@ class SpringGenerator:
             original_name=enum_data['name'],
             api_name="generated",
             enum_values=enum_data['values'],
+            config=config,
             generated_at=datetime.now().isoformat()
         )
     
@@ -433,7 +434,7 @@ class SpringGenerator:
                     entity_dir.mkdir(parents=True, exist_ok=True)
 
                     for enum_name, enum_data in enums.items():
-                        enum_content = self.generate_enum(enum_data, package_name)
+                        enum_content = self.generate_enum(enum_data, package_name, config)
                         enum_file = entity_dir / f"{enum_data['name']}.java"
 
                         with open(enum_file, 'w', encoding='utf-8') as f:
