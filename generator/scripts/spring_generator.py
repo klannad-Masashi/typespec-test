@@ -105,12 +105,26 @@ class SpringGenerator:
         schemas = openapi_spec.get('components', {}).get('schemas', {})
 
         for schema_name, schema_def in schemas.items():
-            # enum型かどうかを判定
-            if schema_def.get('type') == 'string' and 'enum' in schema_def:
+            # enum型かどうかを判定（@makeEnumJavaデコレーター必須）
+            if (schema_def.get('type') == 'string' and
+                'enum' in schema_def and
+                self.has_make_enum_java_decorator(schema_def)):
+                
+                # TypeSpecからの元定義を確認してキー名を使用
+                # OpenAPI変換時にキー名情報が失われているため、enum値をそのまま使用
+                enum_values = []
+                for val in schema_def['enum']:
+                    # enum値をJavaの識別子として有効な形に変換
+                    java_name = val.replace('-', '_').replace(' ', '_').upper()
+                    # 数字で始まる場合は先頭にプレフィックスを追加
+                    if java_name[0].isdigit():
+                        java_name = f"VALUE_{java_name}"
+                    enum_values.append({'name': java_name, 'value': val})
+                
                 enums[schema_name] = {
                     'name': schema_name,
                     'description': schema_def.get('description', f'{schema_name} 列挙型'),
-                    'values': [{'name': val.upper(), 'value': val} for val in schema_def['enum']]
+                    'values': enum_values
                 }
             else:
                 models[schema_name] = self.convert_schema_to_model(schema_name, schema_def, api_name, config)
@@ -128,7 +142,13 @@ class SpringGenerator:
                     endpoints[endpoint_key] = endpoint_data
 
         return models, endpoints, enums
-        
+
+    def has_make_enum_java_decorator(self, schema_def):
+        """@makeEnumJavaデコレーターが付いているかチェック"""
+        # OpenAPI拡張フィールドx-makeEnumJavaの存在確認
+        extensions = schema_def.get('x-makeEnumJava', False)
+        return extensions is True
+
     def convert_schema_to_model(self, schema_name, schema_def, api_name, config):
         """OpenAPIスキーマをJavaモデルに変換"""
         properties = schema_def.get('properties', {})

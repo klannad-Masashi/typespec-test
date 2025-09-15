@@ -15,9 +15,10 @@ namespace Example;
 /**
  * 例示用の列挙型
  */
+@makeEnumJava
 enum ExampleEnum {
   VALUE1: "value1",
-  VALUE2: "value2", 
+  VALUE2: "value2",
   VALUE3: "value3"
 }
 
