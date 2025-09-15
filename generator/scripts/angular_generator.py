@@ -10,6 +10,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
+from .x_extension_parser import XExtensionParser
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class AngularGenerator:
         """
         if isinstance(openapi_files, str):
             # レガシーモード：単一ファイル
-            api_name = Path(openapi_files).stem.replace('-api', '')
+            api_name = Path(openapi_files).stem
             if api_name == 'openapi':
                 api_name = 'main'
             self.openapi_files = {api_name: openapi_files}
@@ -45,6 +46,9 @@ class AngularGenerator:
             trim_blocks=True,
             lstrip_blocks=True
         )
+        
+        # x-拡張フィールドパーサーの初期化
+        self.x_parser = XExtensionParser()
         
     def load_multiple_openapi_specs(self):
         """複数のOpenAPI仕様ファイルを読み込み"""
@@ -146,25 +150,55 @@ class AngularGenerator:
         return models, services
         
     def convert_schema_to_interface(self, schema_name, schema_def):
-        """OpenAPIスキーマをTypeScriptインターフェースに変換"""
+        """OpenAPIスキーマをTypeScriptインターフェースに変換（x-拡張フィールド対応版）"""
         properties = schema_def.get('properties', {})
         required = schema_def.get('required', [])
         
         fields = []
+        all_validators = []
+        validator_imports = set()
+        
         for prop_name, prop_def in properties.items():
+            # x-拡張フィールドからバリデーション情報を生成
+            validation_rules = self.x_parser.parse_property_extensions(prop_def)
+            angular_validators = self.x_parser.to_angular_validators(validation_rules)
+            
+            # バリデーター情報をフィールドに追加
+            field_validators = []
+            for validator in angular_validators:
+                field_validators.append({
+                    'name': validator.validator_name,
+                    'function': validator.validator_function,
+                    'error_message': validator.error_message
+                })
+                validator_imports.add(validator.import_statement)
+            
             field = {
                 'name': prop_name,
                 'type': self.openapi_type_to_typescript_type(prop_def),
                 'optional': prop_name not in required,
-                'description': prop_def.get('description', '')
+                'description': prop_def.get('description', ''),
+                'validators': field_validators,
+                'x_extensions': self._extract_x_extensions(prop_def)
             }
             fields.append(field)
+            all_validators.extend(field_validators)
             
         return {
             'name': schema_name,
             'fields': fields,
-            'description': schema_def.get('description', '')
+            'description': schema_def.get('description', ''),
+            'validators': all_validators,
+            'validator_imports': list(validator_imports)
         }
+    
+    def _extract_x_extensions(self, prop_def):
+        """プロパティからx-拡張フィールドを抽出"""
+        extensions = {}
+        for key, value in prop_def.items():
+            if key.startswith('x-'):
+                extensions[key] = value
+        return extensions
         
     def extract_service_name_from_path(self, path, api_name=None):
         """パスからサービス名を抽出（例: /users -> UserService）"""

@@ -1,3 +1,8 @@
+// バリデーターインポート
+{% for import_statement in model.validator_imports %}
+{{ import_statement }}
+{% endfor %}
+
 /**
  * {{ model_name }} インターフェース
  * {{ model.description }}
@@ -7,6 +12,15 @@ export interface {{ model_name }} {
 {% for field in model.fields %}
   /**
    * {{ field.description if field.description else field.name }}
+   {% if field.validators %}
+   * バリデーション: 
+   {%- for validator in field.validators %}
+   *   - {{ validator.name }}: {{ validator.error_message }}
+   {%- endfor %}
+   {% endif %}
+   {% if field.x_extensions %}
+   * x-拡張フィールド: {{ field.x_extensions }}
+   {% endif %}
    */
   {{ field.name }}{{ '?' if field.optional else '' }}: {{ field.type }};
 {% endfor %}
@@ -21,3 +35,36 @@ export interface {{ model_name }} {
    */
   updatedAt?: Date;
 }
+
+{% if model.validators %}
+/**
+ * {{ model_name }} のフォームバリデーションコントロール設定
+ * x-拡張フィールドから自動生成されたバリデーター
+ */
+export const {{ model_name }}FormValidators = {
+{% for field in model.fields %}
+  {{ field.name }}: [
+    {%- if field.validators %}
+    {%- for validator in field.validators %}
+    {{ validator.function }}{% if not loop.last %},{% endif %}
+    {%- endfor %}
+    {%- endif %}
+  ],
+{% endfor %}
+};
+
+/**
+ * {{ model_name }} のバリデーションエラーメッセージ
+ */
+export const {{ model_name }}ValidationMessages = {
+{% for field in model.fields %}
+  {{ field.name }}: {
+    {%- if field.validators %}
+    {%- for validator in field.validators %}
+    {{ validator.name }}: '{{ validator.error_message }}'{% if not loop.last %},{% endif %}
+    {%- endfor %}
+    {%- endif %}
+  },
+{% endfor %}
+};
+{% endif %}

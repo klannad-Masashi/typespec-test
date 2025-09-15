@@ -16,15 +16,32 @@ import java.util.UUID;
 @RestController
 public class {{ controller_name }} {
 
-    private final {{ usecase_name }} {{ usecase_var_name }};
+{% for usecase in processed_usecases %}
+    private final {{ usecase.class_name }} {{ usecase.var_name }};
+{% endfor %}
 
-    public {{ controller_name }}({{ usecase_name }} {{ usecase_var_name }}) {
-        this.{{ usecase_var_name }} = {{ usecase_var_name }};
+    public {{ controller_name }}(
+        {%- for usecase in processed_usecases -%}
+        {{ usecase.class_name }} {{ usecase.var_name }}
+        {%- if not loop.last -%}, {% endif -%}
+        {%- endfor -%}
+    ) {
+{% for usecase in processed_usecases %}
+        this.{{ usecase.var_name }} = {{ usecase.var_name }};
+{% endfor %}
     }
 
 {% for endpoint in processed_endpoints %}
     @{{ endpoint.spring_method }}Mapping("{{ endpoint.path }}")
     public {{ endpoint.response_type }} {{ endpoint.method_name }}(
+        {%- for path_param in endpoint.path_params -%}
+        @PathVariable {{ path_param.type }} {{ path_param.name }}
+        {%- if endpoint.query_params or endpoint.request_type -%}, {% endif -%}
+        {%- endfor -%}
+        {%- for query_param in endpoint.query_params -%}
+        @RequestParam{% if not query_param.required %}(required = false){% endif %} {{ query_param.type }} {{ query_param.name }}
+        {%- if not loop.last or endpoint.request_type -%}, {% endif -%}
+        {%- endfor -%}
         {%- if endpoint.request_type -%}
         @RequestBody @Valid {{ endpoint.request_type }} {{ endpoint.request_param }}
         {%- endif -%}
@@ -34,27 +51,24 @@ public class {{ controller_name }} {
         {{ endpoint.request_param }}.combineCheck();
 
         // ユースケース実行
-        final var usecaseResult = {{ usecase_var_name }}.exec({{ endpoint.primary_field }});
+        final var usecaseResult = {{ endpoint.usecase_var_name }}.exec({{ endpoint.primary_field }});
 
-        // 後で消す（ユースケース結果の処理例）
-        usecaseResult.applicationClassificationList().forEach(it -> {
-            it.applicationClassificationId();
-            it.applicationTypeDiv();
-            it.applicationClassificationName();
-            it.applicationClassificationDescription();
-            it.sortControl();
-            it.lastUpdateTimestamp();
-        });
+        // TODO: 開発者が実装する
+        // ユースケース結果からレスポンスDTOへの詰め替え処理
+        final var result = new {{ endpoint.response_type }}(/* ここでusecaseResultからの詰め替えを実装 */);
 
-        final var result = {{ endpoint.result_constructor }};
-
+        // チェック処理
         result.check();
+
         return result;
         {% else %}
         // TODO: 実装（リクエストボディなし）
         return ResponseEntity.ok("{{ endpoint.method_name }} is working!");
         {% endif %}
     }
+{% if not loop.last %}
+
+{% endif %}
 {% endfor %}
 
 {% for model in processed_models %}
@@ -65,6 +79,7 @@ public class {{ controller_name }} {
         {{ annotation }}
 {% endfor %}
         {{ field.type }} {{ field.name }}{% if not loop.last %},
+
 {% else %}
 
 {% endif %}

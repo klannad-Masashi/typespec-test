@@ -1,0 +1,97 @@
+package {{ model.package }};
+
+// 基本的なJavaインポート
+import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.UUID;
+import java.math.BigDecimal;
+import java.util.List;
+
+// バリデーションインポート
+{% for import_statement in model.validation_imports %}
+{{ import_statement }}
+{% endfor %}
+
+/**
+ * {{ model.description }}
+ * TypeSpecから自動生成されたDTOクラス
+ * 生成日時: {{ generated_at }}
+ */
+public class {{ model.name }} {
+{% for field in model.fields %}
+
+    /**
+     * {{ field.description }}
+     */
+{% for annotation in field.validation %}
+    {{ annotation }}
+{% endfor %}
+    private {{ field.type }} {{ field.name }};
+{% endfor %}
+
+    // デフォルトコンストラクタ
+    public {{ model.name }}() {}
+
+    // 全フィールドコンストラクタ
+    public {{ model.name }}(
+{% for field in model.fields %}
+        {{ field.type }} {{ field.name }}{% if not loop.last %},{% endif %}
+{% endfor %}
+    ) {
+{% for field in model.fields %}
+        this.{{ field.name }} = {{ field.name }};
+{% endfor %}
+    }
+
+    // ゲッターとセッター
+{% for field in model.fields %}
+    public {{ field.type }} get{{ field.name|title }}() {
+        return {{ field.name }};
+    }
+
+    public void set{{ field.name|title }}({{ field.type }} {{ field.name }}) {
+        this.{{ field.name }} = {{ field.name }};
+    }
+
+{% endfor %}
+    /**
+     * カスタムバリデーションメソッド
+     * x-拡張フィールドで定義されたビジネスロジック検証を実装
+     */
+    public void customValidation() {
+        // TODO: 開発者がビジネスロジック固有のバリデーションを実装
+{% for field in model.fields %}
+{% if field.x_extensions %}
+        // {{ field.name }} のカスタム検証
+        // x-拡張フィールド: {{ field.x_extensions }}
+{% endif %}
+{% endfor %}
+    }
+
+    @Override
+    public String toString() {
+        return "{{ model.name }}{" +
+{% for field in model.fields %}
+                "{{ field.name }}=" + {{ field.name }}{% if not loop.last %} +{% endif %}
+                {% if not loop.last %}", " +{% endif %}
+{% endfor %}
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        {{ model.name }} that = ({{ model.name }}) obj;
+        return java.util.Objects.equals(this.toString(), that.toString());
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(
+{% for field in model.fields %}
+            {{ field.name }}{% if not loop.last %},{% endif %}
+{% endfor %}
+        );
+    }
+}

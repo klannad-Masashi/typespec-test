@@ -49,7 +49,7 @@ def discover_openapi_files(input_path):
     
     if input_path.is_file():
         # 単一ファイルの場合
-        api_name = input_path.stem.replace('-api', '')
+        api_name = input_path.stem
         if api_name == 'openapi':  # レガシー単一ファイル
             api_name = 'main'
         openapi_files[api_name] = str(input_path)
@@ -58,7 +58,7 @@ def discover_openapi_files(input_path):
         # ディレクトリの場合、*.yamlファイルを検索
         yaml_files = list(input_path.glob("*.yaml")) + list(input_path.glob("*.yml"))
         for yaml_file in yaml_files:
-            api_name = yaml_file.stem.replace('-api', '')
+            api_name = yaml_file.stem
             openapi_files[api_name] = str(yaml_file)
             logger.info(f"APIファイルを検出: {api_name} -> {yaml_file}")
     else:

@@ -27,7 +27,7 @@ class JavaEnumGenerator:
         """
         if isinstance(openapi_files, str):
             # レガシーモード：単一ファイル
-            api_name = Path(openapi_files).stem.replace('-api', '')
+            api_name = Path(openapi_files).stem
             if api_name == 'openapi':
                 api_name = 'main'
             self.openapi_files = {api_name: openapi_files}

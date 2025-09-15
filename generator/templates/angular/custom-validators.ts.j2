@@ -1,0 +1,185 @@
+import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
+
+/**
+ * カスタムバリデーター
+ * TypeSpec x-拡張フィールドから自動生成
+ * 生成日時: {{ generated_at }}
+ */
+export class CustomValidators {
+
+  /**
+   * JIS X 0213文字と英数記号のバリデーター
+   */
+  static jisX0213withAlphaNumericSymbol(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (!control.value) {
+        return null; // 空値の場合は他のバリデーターに委ねる
+      }
+      
+      const pattern = /^[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\uF900-\uFAFF\u3400-\u4DBFa-zA-Z0-9\s!-/:-@\[-`{-~]+$/;
+      const isValid = pattern.test(control.value);
+      
+      return isValid ? null : {
+        jisX0213withAlphaNumericSymbol: {
+          actualValue: control.value,
+          message: 'JIS X 0213文字と英数記号のみ入力可能です'
+        }
+      };
+    };
+  }
+
+  /**
+   * 英数字パターンのバリデーター
+   */
+  static alphanumericPattern(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (!control.value) {
+        return null;
+      }
+      
+      const pattern = /^[a-zA-Z0-9]+$/;
+      const isValid = pattern.test(control.value);
+      
+      return isValid ? null : {
+        alphanumericPattern: {
+          actualValue: control.value,
+          message: '英数字のみ入力してください'
+        }
+      };
+    };
+  }
+
+  /**
+   * 配列サイズバリデーター
+   */
+  static arraySize(options: { min?: number; max?: number }): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (!control.value || !Array.isArray(control.value)) {
+        return null;
+      }
+      
+      const length = control.value.length;
+      const errors: any = {};
+      
+      if (options.min !== undefined && length < options.min) {
+        errors.minArraySize = {
+          actualLength: length,
+          minLength: options.min,
+          message: `最低${options.min}個の要素が必要です`
+        };
+      }
+      
+      if (options.max !== undefined && length > options.max) {
+        errors.maxArraySize = {
+          actualLength: length,
+          maxLength: options.max,
+          message: `最大${options.max}個までしか入力できません`
+        };
+      }
+      
+      return Object.keys(errors).length > 0 ? errors : null;
+    };
+  }
+
+  /**
+   * 汎用文字列バリデーター
+   */
+  static allStringValidation(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (!control.value) {
+        return null;
+      }
+      
+      // 基本的な文字列チェック（空白のみでない、制御文字を含まない等）
+      const value = control.value.toString();
+      
+      if (value.trim().length === 0) {
+        return {
+          allStringValidation: {
+            actualValue: control.value,
+            message: '空白のみの入力は無効です'
+          }
+        };
+      }
+      
+      // 制御文字をチェック
+      if (/[\x00-\x1F\x7F]/.test(value)) {
+        return {
+          allStringValidation: {
+            actualValue: control.value,
+            message: '制御文字は入力できません'
+          }
+        };
+      }
+      
+      return null;
+    };
+  }
+
+  /**
+   * カスタムパターンバリデーター（動的生成用）
+   */
+  static customPattern(pattern: string, message: string): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (!control.value) {
+        return null;
+      }
+      
+      const regex = new RegExp(pattern);
+      const isValid = regex.test(control.value);
+      
+      return isValid ? null : {
+        customPattern: {
+          actualValue: control.value,
+          pattern: pattern,
+          message: message
+        }
+      };
+    };
+  }
+
+  /**
+   * 日時バリデーター
+   */
+  static instantValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (!control.value) {
+        return null;
+      }
+      
+      const date = new Date(control.value);
+      
+      if (isNaN(date.getTime())) {
+        return {
+          invalidDate: {
+            actualValue: control.value,
+            message: '有効な日時を入力してください'
+          }
+        };
+      }
+      
+      return null;
+    };
+  }
+
+  /**
+   * 列挙型バリデーター
+   */
+  static enumValidator(allowedValues: string[]): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (!control.value) {
+        return null;
+      }
+      
+      const isValid = allowedValues.includes(control.value);
+      
+      return isValid ? null : {
+        invalidEnum: {
+          actualValue: control.value,
+          allowedValues: allowedValues,
+          message: `許可された値ではありません。選択可能な値: ${allowedValues.join(', ')}`
+        }
+      };
+    };
+  }
+}

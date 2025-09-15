@@ -11,6 +11,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
+from .x_extension_parser import XExtensionParser
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +28,7 @@ class SpringGenerator:
         """
         if isinstance(openapi_files, str):
             # レガシーモード：単一ファイル
-            api_name = Path(openapi_files).stem.replace('-api', '')
-            if api_name == 'openapi':
-                api_name = 'main'
-            elif api_name == 'example':
-                api_name = 'example'
+            api_name = Path(openapi_files).stem
             self.openapi_files = {api_name: openapi_files}
         else:
             # マルチAPIモード
@@ -49,6 +46,9 @@ class SpringGenerator:
             lstrip_blocks=True
         )
         
+        # x-拡張フィールドパーサーの初期化
+        self.x_parser = XExtensionParser()
+        
     def load_multiple_openapi_specs(self):
         """複数のOpenAPI仕様ファイルを読み込み"""
         specs = {}
@@ -65,37 +65,13 @@ class SpringGenerator:
     def load_config(self):
         """設定ファイルを読み込み"""
         if not self.config_path or not os.path.exists(self.config_path):
-            return self.get_default_config()
+            raise FileNotFoundError(f"設定ファイルが見つかりません: {self.config_path}")
             
         try:
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 return yaml.safe_load(f)
         except Exception as e:
-            logger.warning(f"設定ファイルの読み込みに失敗、デフォルト設定を使用: {e}")
-            return self.get_default_config()
-            
-    def get_default_config(self):
-        """デフォルト設定を返す"""
-        return {
-            'global': {
-                'output_base': 'output/'
-            },
-            'spring': {
-                'base_package': 'com.example.api',
-                'controller_package': 'controller',
-                'dto_package': 'dto', 
-                'entity_package': 'entity',
-                'service_package': 'service',
-                'repository_package': 'repository'
-            },
-            'features': {
-                'validation': True,
-                'swagger': True,
-                'jpa': True,
-                'rest_template': True
-            },
-            'apis': {}  # API別設定（マルチAPI対応）
-        }
+            raise Exception(f"設定ファイルの読み込みに失敗: {e}")
         
     def get_api_package_name(self, api_name, config):
         """API別のパッケージ名を取得"""
@@ -114,23 +90,7 @@ class SpringGenerator:
         package_path = package_name.replace('.', '/')
         return self.base_output_dir / "main" / "java" / package_path
 
-    def normalize_class_name(self, class_name):
-        """クラス名からプレフィックスを除去して正規化する"""
-        # 除去対象のプレフィックスリスト
-        prefixes_to_remove = [
-            'UserModels.',
-            'AuthModels.',
-            'ProductModels.',
-            'ExampleModels.',
-            'TypeSpecGen.Enums.',
-            'TypeSpecGen.',
-        ]
-        
-        for prefix in prefixes_to_remove:
-            if class_name.startswith(prefix):
-                return class_name[len(prefix):]
-        
-        return class_name
+    
         
     def extract_models_and_paths_for_api(self, api_name, openapi_spec, config):
         """API別にモデルとAPIパスを抽出"""
@@ -161,15 +121,21 @@ class SpringGenerator:
         required = schema_def.get('required', [])
         
         fields = []
+        all_imports = set()
+        
         for prop_name, prop_def in properties.items():
+            validation_info = self.generate_validation_annotations(prop_def, prop_name in required, prop_name)
+            
             field = {
                 'name': prop_name,
                 'type': self.openapi_type_to_java_type(prop_def),
                 'required': prop_name in required,
                 'description': prop_def.get('description', ''),
-                'validation': self.generate_validation_annotations(prop_def, prop_name in required)
+                'validation': validation_info['annotations'],
+                'validation_imports': validation_info['imports']
             }
             fields.append(field)
+            all_imports.update(validation_info['imports'])
         
         # API別のパッケージ名を取得
         base_package = self.get_api_package_name(api_name, config)
@@ -180,7 +146,8 @@ class SpringGenerator:
             'fields': fields,
             'description': schema_def.get('description', ''),
             'package': f"{base_package}.{dto_package}",
-            'api_name': api_name
+            'api_name': api_name,
+            'validation_imports': list(all_imports)
         }
         
     def convert_path_to_endpoint(self, path, method, method_def):
@@ -237,269 +204,91 @@ class SpringGenerator:
         else:
             return 'String'  # デフォルト
             
-    def generate_validation_annotations(self, prop_def, is_required):
-        """バリデーションアノテーションを生成"""
+    def generate_validation_annotations(self, prop_def, is_required, field_name=None):
+        """バリデーションアノテーションを生成（x-拡張フィールド対応版）"""
+        # x-拡張フィールドパーサーを使用してバリデーションルールを解析
+        validation_rules = self.x_parser.parse_property_extensions(prop_def, field_name)
+        
+        # Spring Bootアノテーションに変換
+        spring_annotations = self.x_parser.to_spring_boot_annotations(validation_rules)
+        
+        # アノテーション文字列のリストを生成
         annotations = []
+        import_statements = set()
         
-        if is_required:
-            annotations.append('@NotNull')
+        for annotation in spring_annotations:
+            annotations.append(annotation.to_annotation_string())
+            import_statements.add(annotation.import_statement)
+        
+        # 従来のバリデーションも保持（x-拡張フィールドがない場合のフォールバック）
+        if not validation_rules:
+            # 従来のロジック
+            if is_required:
+                annotations.append('@NotNull')
+                import_statements.add('import javax.validation.constraints.NotNull;')
+                
+            prop_type = prop_def.get('type')
+            prop_format = prop_def.get('format')
             
-        prop_type = prop_def.get('type')
-        prop_format = prop_def.get('format')
+            if prop_type == 'string':
+                if prop_format == 'email':
+                    annotations.append('@Email')
+                    import_statements.add('import javax.validation.constraints.Email;')
+                if 'minLength' in prop_def or 'maxLength' in prop_def:
+                    min_len = prop_def.get('minLength', 0)
+                    max_len = prop_def.get('maxLength', 255)
+                    annotations.append(f'@Size(min={min_len}, max={max_len})')
+                    import_statements.add('import javax.validation.constraints.Size;')
+                    
+            elif prop_type in ['integer', 'number']:
+                if 'minimum' in prop_def:
+                    annotations.append(f"@Min({prop_def['minimum']})")
+                    import_statements.add('import javax.validation.constraints.Min;')
+                if 'maximum' in prop_def:
+                    annotations.append(f"@Max({prop_def['maximum']})")
+                    import_statements.add('import javax.validation.constraints.Max;')
         
-        if prop_type == 'string':
-            if prop_format == 'email':
-                annotations.append('@Email')
-            if 'minLength' in prop_def or 'maxLength' in prop_def:
-                min_len = prop_def.get('minLength', 0)
-                max_len = prop_def.get('maxLength', 255)
-                annotations.append(f'@Size(min={min_len}, max={max_len})')
-                
-        elif prop_type in ['integer', 'number']:
-            if 'minimum' in prop_def:
-                annotations.append(f"@Min({prop_def['minimum']})")
-            if 'maximum' in prop_def:
-                annotations.append(f"@Max({prop_def['maximum']})")
-                
-        return annotations
+        return {
+            'annotations': annotations,
+            'imports': list(import_statements)
+        }
         
-    def generate_controller(self, models, endpoints, config):
-        """Controllerクラスを生成"""
-        controller_template = """package {{ config.spring.base_package }}.{{ config.spring.controller_package }};
-
-import org.springframework.web.bind.annotation.*;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
-import org.springframework.beans.factory.annotation.Autowired;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import javax.validation.Valid;
-import java.util.List;
-
-{% for model_name, model in models.items() %}
-import {{ model.package }}.{{ model_name }};
-{% endfor %}
-
-/**
- * TypeSpecから自動生成されたAPIコントローラー
- * 生成日時: {{ generated_at }}
- */
-@RestController
-@RequestMapping("/api")
-@Tag(name = "User API", description = "ユーザー管理API")
-public class UserController {
-
-    // TODO: サービスクラスの注入
-    // @Autowired
-    // private UserService userService;
-
-    /**
-     * ユーザー一覧取得
-     */
-    @GetMapping("/users")
-    @Operation(summary = "ユーザー一覧取得", description = "全ユーザーの一覧を取得します")
-    public ResponseEntity<List<User>> getUsers() {
-        // TODO: 実装
-        return ResponseEntity.ok().build();
-    }
-
-    /**
-     * ユーザー詳細取得
-     */
-    @GetMapping("/users/{id}")
-    @Operation(summary = "ユーザー詳細取得", description = "指定されたIDのユーザー詳細を取得します")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
-        // TODO: 実装
-        return ResponseEntity.ok().build();
-    }
-
-    /**
-     * ユーザー作成
-     */
-    @PostMapping("/users")
-    @Operation(summary = "ユーザー作成", description = "新しいユーザーを作成します")
-    public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
-        // TODO: 実装
-        return ResponseEntity.status(HttpStatus.CREATED).build();
-    }
-
-    /**
-     * ユーザー更新
-     */
-    @PutMapping("/users/{id}")
-    @Operation(summary = "ユーザー更新", description = "指定されたIDのユーザー情報を更新します")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @Valid @RequestBody User user) {
-        // TODO: 実装
-        return ResponseEntity.ok().build();
-    }
-
-    /**
-     * ユーザー削除
-     */
-    @DeleteMapping("/users/{id}")
-    @Operation(summary = "ユーザー削除", description = "指定されたIDのユーザーを削除します")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        // TODO: 実装
-        return ResponseEntity.noContent().build();
-    }
-}"""
-
-        from jinja2 import Template
-        template = Template(controller_template)
-        return template.render(
-            models=models,
-            endpoints=endpoints,
-            config=config,
-            generated_at=datetime.now().isoformat()
-        )
+    
         
     def generate_api_controller(self, api_name, models, endpoints, config, package_name):
         """API別Controllerクラスを生成"""
-        
-        # example APIの場合は特別なテンプレート（record内包）を使用
-        if api_name == "example":
-            template = self.jinja_env.get_template("controller.java.j2")
-            
-            # テンプレート用データを準備
-            controller_name = "ExampleController"
-            usecase_name = "ExampleUseCase"
-            usecase_var_name = "exampleUseCase"
-            
-            # 動的テンプレート用の前処理済みデータを生成
-            processed_endpoints = self.process_endpoints_for_template(endpoints, models)
-            processed_models = self.process_models_for_template(models)
-            processed_enums = self.process_enums_for_template(models)
-            
-            return template.render(
-                api_name=api_name,
-                controller_name=controller_name,
-                usecase_name=usecase_name,
-                usecase_var_name=usecase_var_name,
-                models=models,
-                endpoints=endpoints,
-                processed_endpoints=processed_endpoints,
-                processed_models=processed_models,
-                processed_enums=processed_enums,
-                config=config,
-                generated_at=datetime.now().isoformat()
-            )
-        
-        # 通常のAPIの場合は既存のテンプレート
-        controller_template = """package {{ package_name }}.{{ config.spring.controller_package }};
 
-import org.springframework.web.bind.annotation.*;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
-import org.springframework.beans.factory.annotation.Autowired;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import javax.validation.Valid;
-import java.util.List;
+        # record内包型テンプレートを使用（全API共通）
+        template = self.jinja_env.get_template("controller.java.j2")
 
-{% for model_name, model in models.items() %}
-import {{ model.package }}.{{ model_name }};
-{% endfor %}
+        # テンプレート用データを準備（動的生成）
+        controller_name = f"{api_name.title()}Controller"
 
-/**
- * {{ api_name|title }} API Controller
- * TypeSpecから自動生成されたAPIコントローラー
- * 生成日時: {{ generated_at }}
- */
-@RestController
-@RequestMapping("/api/{{ api_name }}")
-@Tag(name = "{{ api_name|title }} API", description = "{{ api_name|title }} 管理API")
-public class {{ api_name|title }}Controller {
+        # 動的テンプレート用の前処理済みデータを生成
+        processed_endpoints = self.process_endpoints_for_template(endpoints, models)
+        processed_models = self.process_models_for_template(models)
+        processed_enums = self.process_enums_for_template(models)
+        processed_usecases = self.process_usecases_for_template(endpoints)
 
-    // TODO: サービスクラスの注入
-    // @Autowired
-    // private {{ api_name|title }}Service {{ api_name }}Service;
-
-    /**
-     * TODO: 実際のエンドポイントメソッドを実装
-     * 現在はプレースホルダーメソッドです
-     */
-    @GetMapping
-    @Operation(summary = "{{ api_name }} 一覧取得", description = "{{ api_name }} の一覧を取得します")
-    public ResponseEntity<String> get{{ api_name|title }}List() {
-        // TODO: 実装
-        return ResponseEntity.ok("{{ api_name|title }} API is working!");
-    }
-}"""
-
-        from jinja2 import Template
-        template = Template(controller_template)
         return template.render(
             api_name=api_name,
+            controller_name=controller_name,
             models=models,
             endpoints=endpoints,
+            processed_endpoints=processed_endpoints,
+            processed_models=processed_models,
+            processed_enums=processed_enums,
+            processed_usecases=processed_usecases,
             config=config,
-            package_name=package_name,
             generated_at=datetime.now().isoformat()
         )
         
     def generate_dto(self, model_name, model, config):
-        """DTOクラスを生成"""
-        dto_template = """package {{ model.package }};
-
-import javax.validation.constraints.*;
-import java.time.LocalDateTime;
-import java.util.UUID;
-import java.math.BigDecimal;
-import java.util.List;
-
-/**
- * {{ model_name }} DTO
- * {{ model.description }}
- * TypeSpecから自動生成 - {{ generated_at }}
- */
-public class {{ model_name }} {
-
-{% for field in model.fields %}
-    /**
-     * {{ field.description if field.description else field.name }}
-     */
-{% for annotation in field.validation %}
-    {{ annotation }}
-{% endfor %}
-    private {{ field.type }} {{ field.name }};
-
-{% endfor %}
-
-    // コンストラクタ
-    public {{ model_name }}() {}
-
-{% for field in model.fields %}
-    // {{ field.name }} のgetter/setter
-    public {{ field.type }} get{{ field.name|title }}() {
-        return {{ field.name }};
-    }
-
-    public void set{{ field.name|title }}({{ field.type }} {{ field.name }}) {
-        this.{{ field.name }} = {{ field.name }};
-    }
-
-{% endfor %}
-{% if model_name == 'V1InDto' %}
-
-    public void combineCheck() {
-        // TODO: 開発者が実装する
-    }
-{% endif %}
-{% if model_name.startswith('V1Out') %}
-
-    public void check() {
-        // TODO: 開発者が実装する
-    }
-{% endif %}
-
-}"""
-
-        from jinja2 import Template
-        template = Template(dto_template)
+        """DTOクラスを生成（Jinja2テンプレートファイル使用）"""
+        # Jinja2テンプレートファイルを使用
+        template = self.jinja_env.get_template("dto.java.j2")
         return template.render(
-            model_name=model_name,
             model=model,
-            config=config,
             generated_at=datetime.now().isoformat()
         )
     
@@ -517,10 +306,8 @@ public class {{ model_name }} {
         """DTOのメタデータを収集"""
         dto_metadata = []
         for model_name, model in models.items():
-            # クラス名を正規化
-            normalized_class_name = self.normalize_class_name(model_name)
             dto_info = {
-                "class_name": normalized_class_name,
+                "class_name": model_name,
                 "package": f"{package_name}.{config['spring']['dto_package']}",
                 "fields": []
             }
@@ -599,10 +386,8 @@ public class {{ model_name }} {
                 dto_dir.mkdir(exist_ok=True)
                 
                 for model_name, model in models.items():
-                    # クラス名を正規化
-                    normalized_class_name = self.normalize_class_name(model_name)
-                    dto_content = self.generate_dto(normalized_class_name, model, config)
-                    dto_file = dto_dir / f"{normalized_class_name}.java"
+                    dto_content = self.generate_dto(model_name, model, config)
+                    dto_file = dto_dir / f"{model_name}.java"
                     
                     with open(dto_file, 'w', encoding='utf-8') as f:
                         f.write(dto_content)
@@ -677,14 +462,38 @@ public class {{ model_name }} {
         processed = []
         
         for endpoint_key, endpoint in endpoints.items():
+            operation_id = endpoint['operation_id']
+
+            # パラメーターを処理
+            path_params = []
+            query_params = []
+            for param in endpoint.get('parameters', []):
+                if param.get('in') == 'path':
+                    path_params.append({
+                        'name': param['name'],
+                        'type': self.openapi_type_to_java_type(param.get('schema', {})),
+                        'description': param.get('description', '')
+                    })
+                elif param.get('in') == 'query':
+                    query_params.append({
+                        'name': param['name'],
+                        'type': self.openapi_type_to_java_type(param.get('schema', {})),
+                        'required': param.get('required', False),
+                        'description': param.get('description', '')
+                    })
+
             processed_endpoint = {
                 'path': endpoint['path'],
                 'spring_method': endpoint['method'].title(),  # POST -> Post
-                'method_name': endpoint['operation_id'],
+                'method_name': operation_id,
                 'response_type': self.extract_response_type(endpoint.get('responses', {})),
                 'request_type': self.extract_request_type(endpoint.get('request_body')),
-                'request_param': endpoint['operation_id'].lower() + 'Request',
-                'primary_field': self.get_primary_field_access(endpoint.get('request_body'), models),
+                'request_param': operation_id + 'Request',
+                'path_params': path_params,
+                'query_params': query_params,
+                'usecase_class_name': f"{operation_id[0].upper()}{operation_id[1:]}UseCase",
+                'usecase_var_name': f"{operation_id}UseCase",
+                'primary_field': self.get_primary_field_access(endpoint, models),
                 'result_constructor': self.build_result_constructor(endpoint, models)
             }
             processed.append(processed_endpoint)
@@ -737,7 +546,30 @@ public class {{ model_name }} {
                     break
         
         return processed
-    
+
+    def process_usecases_for_template(self, endpoints):
+        """エンドポイント別のユースケースをテンプレート用に前処理"""
+        processed_usecases = []
+        unique_usecases = set()
+
+        for endpoint_key, endpoint in endpoints.items():
+            operation_id = endpoint['operation_id']
+
+            # operation_idからユースケース名を生成
+            usecase_name = f"{operation_id[0].upper()}{operation_id[1:]}UseCase"
+            usecase_var_name = f"{operation_id}UseCase"
+
+            # 重複を避ける
+            if usecase_name not in unique_usecases:
+                processed_usecases.append({
+                    'class_name': usecase_name,
+                    'var_name': usecase_var_name,
+                    'operation_id': operation_id
+                })
+                unique_usecases.add(usecase_name)
+
+        return processed_usecases
+
     def extract_response_type(self, responses):
         """レスポンス型を抽出"""
         if '200' in responses:
@@ -759,16 +591,17 @@ public class {{ model_name }} {
                 return schema['$ref'].split('/')[-1]
         return None
     
-    def get_primary_field_access(self, request_body, models):
-        """主要フィールドのアクセス方法を生成（例：requestParam.minMaxValue）"""
+    def get_primary_field_access(self, endpoint, models):
+        """主要フィールドのアクセス方法を生成（DTOオブジェクト全体を渡す）"""
+        request_body = endpoint.get('request_body')
         request_type = self.extract_request_type(request_body)
         if not request_type:
             return "null"
         
-        # operation_idから正しい変数名を生成
-        # V1InDto -> examplev1Request.minMaxValue
-        param_name = request_type.replace('V1InDto', '').lower() + 'examplev1Request'
-        return f"examplev1Request.minMaxValue"
+        # DTOオブジェクト全体を渡すため、パラメーター名を返す
+        # operation_idから動的に変数名を生成
+        param_name = endpoint['operation_id'] + 'Request'
+        return param_name
     
     def build_result_constructor(self, endpoint, models):
         """結果オブジェクトのコンストラクタを生成"""
@@ -778,7 +611,7 @@ public class {{ model_name }} {
         if not request_type or not response_type:
             return 'null'
         
-        param_name = endpoint['operation_id'].lower() + 'Request'
+        param_name = endpoint['operation_id'] + 'Request'
         
         # 簡単な例（実際は型の構造に基づいて生成する必要がある）
         return f"""new {response_type}(
