@@ -23,6 +23,16 @@ enum ExampleEnum {
 }
 
 /**
+ * 例示用の列挙型
+ */
+@makeEnumJava
+enum SampleEnum {
+  AAA: "01",
+  BBB: "02",
+  CCC: "03"
+}
+
+/**
  * 入力用DTO内部オブジェクト
  */
 model V1InDtoInnerObject {

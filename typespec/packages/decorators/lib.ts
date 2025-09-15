@@ -73,6 +73,16 @@ export function $precisionScale(
 // ===== Enum系 =====
 export function $makeEnumJava(ctx: DecoratorContext, target: Enum) {
   setExtension(ctx.program, target, "x-makeEnumJava", true);
+
+  // Enumメンバー情報を直接取得してOpenAPI拡張に保存
+  const members = [];
+  for (const [name, member] of target.members) {
+    members.push({
+      key: name,           // 元のキー名（AAA, BBB, CCC）
+      value: member.value  // 対応する値（"01", "02", "03"）
+    });
+  }
+  setExtension(ctx.program, target, "x-enumMembers", members);
 }
 
 // ===== バリデーション系 =====

@@ -110,16 +110,24 @@ class SpringGenerator:
                 'enum' in schema_def and
                 self.has_make_enum_java_decorator(schema_def)):
                 
-                # TypeSpecからの元定義を確認してキー名を使用
-                # OpenAPI変換時にキー名情報が失われているため、enum値をそのまま使用
                 enum_values = []
-                for val in schema_def['enum']:
-                    # enum値をJavaの識別子として有効な形に変換
-                    java_name = val.replace('-', '_').replace(' ', '_').upper()
-                    # 数字で始まる場合は先頭にプレフィックスを追加
-                    if java_name[0].isdigit():
-                        java_name = f"VALUE_{java_name}"
-                    enum_values.append({'name': java_name, 'value': val})
+
+                # x-enumMembersが存在する場合は元のキー名を使用
+                if 'x-enumMembers' in schema_def:
+                    for member in schema_def['x-enumMembers']:
+                        enum_values.append({
+                            'name': member['key'],
+                            'value': member['value']
+                        })
+                else:
+                    # フォールバック：現在のロジック
+                    for val in schema_def['enum']:
+                        # enum値をJavaの識別子として有効な形に変換
+                        java_name = val.replace('-', '_').replace(' ', '_').upper()
+                        # 数字で始まる場合は先頭にプレフィックスを追加
+                        if java_name[0].isdigit():
+                            java_name = f"VALUE_{java_name}"
+                        enum_values.append({'name': java_name, 'value': val})
                 
                 enums[schema_name] = {
                     'name': schema_name,
