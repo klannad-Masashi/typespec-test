@@ -39,11 +39,13 @@ model V1InDtoInnerObject {
   /**
    * 内部名称
    */
+  @unitCheckString()
   innerName: string;
-  
+
   /**
    * 内部数値
    */
+  @unitCheckNumber
   innerLong: int64;
 }
 
@@ -54,6 +56,7 @@ model V1InDtoArrayObject {
   /**
    * 配列名称
    */
+  @unitCheckString()
   arrayName: string;
 }
 
@@ -162,48 +165,43 @@ model V1OutDto {
    * 名前
    */
   name: string;
-  
+
   /**
    * NULL許可値
    */
   nullableValue?: string;
-  
+
   /**
    * 空文字不可値
    */
-  notEmpty?: string;
-  
+  notEmpty: string;
+
   /**
    * 最大長制限値
    */
   maxLengthValue: string;
-  
+
   /**
    * 英数字値
    */
   alphanumericValue: string;
-  
+
   /**
    * 最小最大値（文字列化）
    */
   minMaxValue: string;
-  
+
   /**
    * 内部オブジェクト
    */
-  inDtoInnerObject: V1OutDtoInnerObject;
-  
-  /**
-   * 配列オブジェクトリスト
-   */
-  inDtoArrayObjectList: V1OutDtoArrayObject[];
+  outDtoInnerObject: V1OutDtoInnerObject;
 }
 
 /**
  * Example API v1 エンドポイント
  */
 @route("/api/v1/example")
-@post 
-op exampleV1(
+@post
+op v1(
   @body request: V1InDto
 ): V1OutDto;

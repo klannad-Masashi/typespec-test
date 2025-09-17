@@ -46,13 +46,15 @@ public class {{ controller_name }} {
         {%- if not loop.last or endpoint.request_type -%}, {% endif -%}
         {%- endfor -%}
         {%- if endpoint.request_type -%}
-        @RequestBody @Valid {{ endpoint.request_type }} {{ endpoint.request_param }}
+        @RequestBody {{ endpoint.request_type }} {{ endpoint.request_param }}
         {%- endif -%}
     ) {
         {% if endpoint.request_type %}
+        // TODO: 開発者が実装する
         // 関連チェック
         {{ endpoint.request_param }}.combineCheck();
 
+        // TODO: 開発者が実装する
         // ユースケース実行
         final var usecaseResult = {{ endpoint.usecase_var_name }}.exec({{ endpoint.primary_field }});
 
@@ -60,6 +62,7 @@ public class {{ controller_name }} {
         // ユースケース結果からレスポンスDTOへの詰め替え処理
         final var result = new {{ endpoint.response_type }}(/* ここでusecaseResultからの詰め替えを実装 */);
 
+        // TODO: 開発者が実装する
         // チェック処理
         result.check();
 

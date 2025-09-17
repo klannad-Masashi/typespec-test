@@ -166,7 +166,7 @@ class SpringGenerator:
         all_imports = set()
         
         for prop_name, prop_def in properties.items():
-            validation_info = self.generate_validation_annotations(prop_def, prop_name in required, prop_name)
+            validation_info = self.generate_validation_annotations(prop_def, prop_name in required, prop_name, schema_name)
             
             field = {
                 'name': prop_name,
@@ -211,7 +211,13 @@ class SpringGenerator:
         # $refがある場合は参照先の型名を返す
         if '$ref' in prop_def:
             return prop_def['$ref'].split('/')[-1]
-        
+
+        # allOfがある場合は最初の$refの型名を返す
+        if 'allOf' in prop_def and len(prop_def['allOf']) > 0:
+            first_item = prop_def['allOf'][0]
+            if '$ref' in first_item:
+                return first_item['$ref'].split('/')[-1]
+
         prop_type = prop_def.get('type')
         prop_format = prop_def.get('format')
         
@@ -246,26 +252,29 @@ class SpringGenerator:
         else:
             return 'String'  # デフォルト
             
-    def generate_validation_annotations(self, prop_def, is_required, field_name=None):
+    def generate_validation_annotations(self, prop_def, is_required, field_name=None, schema_name=None):
         """バリデーションアノテーションを生成（x-拡張フィールド対応版）"""
         # x-拡張フィールドパーサーを使用してバリデーションルールを解析
         validation_rules = self.x_parser.parse_property_extensions(prop_def, field_name)
-        
+
         # Spring Bootアノテーションに変換
         spring_annotations = self.x_parser.to_spring_boot_annotations(validation_rules)
-        
+
         # アノテーション文字列のリストを生成
         annotations = []
         import_statements = set()
-        
+
         for annotation in spring_annotations:
             annotations.append(annotation.to_annotation_string())
             import_statements.add(annotation.import_statement)
-        
+
+        # 出力DTOかどうかを判定（OutDtoを含む名前の場合は出力DTO）
+        is_output_dto = schema_name and 'OutDto' in schema_name
+
         # 従来のバリデーションも保持（x-拡張フィールドがない場合のフォールバック）
         if not validation_rules:
-            # 従来のロジック
-            if is_required:
+            # 従来のロジック（ただし、出力DTOの場合は@NotNullを付けない）
+            if is_required and not is_output_dto:
                 annotations.append('@NotNull')
                 import_statements.add('import javax.validation.constraints.NotNull;')
                 
@@ -307,10 +316,10 @@ class SpringGenerator:
         controller_name = f"{api_name.title()}Controller"
 
         # 動的テンプレート用の前処理済みデータを生成
-        processed_endpoints = self.process_endpoints_for_template(endpoints, models)
+        processed_endpoints = self.process_endpoints_for_template(endpoints, models, api_name)
         processed_models = self.process_models_for_template(models)
         processed_enums = list(enums.values()) if enums else []
-        processed_usecases = self.process_usecases_for_template(endpoints)
+        processed_usecases = self.process_usecases_for_template(endpoints, api_name)
 
         return template.render(
             api_name=api_name,
@@ -533,7 +542,7 @@ class SpringGenerator:
             }
         }
     
-    def process_endpoints_for_template(self, endpoints, models):
+    def process_endpoints_for_template(self, endpoints, models, api_name):
         """エンドポイントをテンプレート用に前処理"""
         processed = []
         
@@ -564,11 +573,11 @@ class SpringGenerator:
                 'method_name': operation_id,
                 'response_type': self.extract_response_type(endpoint.get('responses', {})),
                 'request_type': self.extract_request_type(endpoint.get('request_body')),
-                'request_param': operation_id + 'Request',
+                'request_param': operation_id + 'InDto',
                 'path_params': path_params,
                 'query_params': query_params,
-                'usecase_class_name': f"{operation_id[0].upper()}{operation_id[1:]}UseCase",
-                'usecase_var_name': f"{operation_id}UseCase",
+                'usecase_class_name': f"{api_name.title()}UseCase",
+                'usecase_var_name': f"{api_name.lower()}UseCase",
                 'primary_field': self.get_primary_field_access(endpoint, models),
                 'result_constructor': self.build_result_constructor(endpoint, models)
             }
@@ -594,8 +603,8 @@ class SpringGenerator:
                 'name': model_name,
                 'description': model.get('description', f'{model_name} DTO'),
                 'fields': processed_fields,
-                'has_combine_check': 'InDto' in model_name or 'In' in model_name,
-                'has_check': 'InDto' not in model_name and 'In' not in model_name
+                'has_combine_check': 'InDto' in model_name,
+                'has_check': 'InDto' not in model_name
             }
             processed.append(processed_model)
             
@@ -623,7 +632,7 @@ class SpringGenerator:
         
         return processed
 
-    def process_usecases_for_template(self, endpoints):
+    def process_usecases_for_template(self, endpoints, api_name):
         """エンドポイント別のユースケースをテンプレート用に前処理"""
         processed_usecases = []
         unique_usecases = set()
@@ -631,9 +640,9 @@ class SpringGenerator:
         for endpoint_key, endpoint in endpoints.items():
             operation_id = endpoint['operation_id']
 
-            # operation_idからユースケース名を生成
-            usecase_name = f"{operation_id[0].upper()}{operation_id[1:]}UseCase"
-            usecase_var_name = f"{operation_id}UseCase"
+            # API名からユースケース名を生成
+            usecase_name = f"{api_name.title()}UseCase"
+            usecase_var_name = f"{api_name.lower()}UseCase"
 
             # 重複を避ける
             if usecase_name not in unique_usecases:
@@ -676,7 +685,7 @@ class SpringGenerator:
         
         # DTOオブジェクト全体を渡すため、パラメーター名を返す
         # operation_idから動的に変数名を生成
-        param_name = endpoint['operation_id'] + 'Request'
+        param_name = endpoint['operation_id'] + 'InDto'
         return param_name
     
     def build_result_constructor(self, endpoint, models):
